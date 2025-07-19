@@ -1,6 +1,8 @@
+import 'package:attendence/Homepage/student_dashboard.dart';
 import 'package:attendence/core/auth/aurth_service.dart';
 import 'package:attendence/user/register/presentation/student_register.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -163,44 +165,87 @@ class _SignInPageState extends State<SignInPage> {
                   final isValid = _formKey.currentState?.validate() ?? false;
                   if (!isValid) return;
 
+                  final email = _emailController.text.trim();
+                  final password = _passwordController.text;
+
                   try {
                     final credentials = await authService.value.signIn(
-                      email: _emailController.text.trim(),
-                      password: _passwordController.text,
+                      email: email,
+                      password: password,
                     );
-                    final email = _emailController.text.trim();
 
+                    // Role validation
                     if (_isStudent && !email.toLowerCase().contains('.bcr')) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('❌ This is not a student email'),
-                        ),
+                        const SnackBar(content: Text('❌ This is not a student email')),
                       );
                       return;
                     }
+
+                    if (!_isStudent && email.toLowerCase().contains('.bcr')) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('❌ This is not a teacher email')),
+                      );
+                      return;
+                    }
+
+                    // Save login role
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.setBool('isLoggedIn', true);
                     await prefs.setString('role', selectedRole);
+                    await prefs.setString('roll_number', _rollController.text);
 
+                    // Save student info in Firestore
                     if (_isStudent) {
                       final docRef = FirebaseFirestore.instance
                           .collection('students')
                           .doc(_rollController.text);
-                      await docRef.set({
-                        'email': email,
-                        'roll': _rollController.text,
-                        'registered_at': FieldValue.serverTimestamp(),
-                      });
-                      Navigator.pushReplacement(context, MaterialPageRoute(builder: (c)=>RegisterStudent()));
+
+                      final docSnap = await docRef.get();
+
+                      if(docSnap.exists){
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => StudentDashboard()),
+                        );
+                      } else{
+                        await docRef.set({
+                          'email': email,
+                          'roll': _rollController.text,
+                          'registered_at': FieldValue.serverTimestamp(),
+                        });
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => RegisterStudent()),
+                        );
+                      }
                     } else {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(builder: (_) => const TeacherDashboard()),
                       );
                     }
+                    _rollController.clear();
+                    _emailController.clear();
+                    _passwordController.clear();
+                  } on FirebaseAuthException catch (e) {
+                    String message = '❌ Login failed';
+
+                    if (e.code == 'user-not-found') {
+                      message = '❌ No user found for that email';
+                    } else if (e.code == 'wrong-password') {
+                      message = '❌ Wrong password provided';
+                    } else if (e.code == 'invalid-email') {
+                      message = '❌ Invalid email format';
+                    }
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(message)),
+                    );
+
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('❌ Login failed: ${e.toString()}')),
+                      SnackBar(content: Text('❌ Unexpected error: ${e.toString()}')),
                     );
                   }
                 },
