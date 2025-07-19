@@ -70,10 +70,12 @@ class _RegisterStudentState extends State<RegisterStudent> {
       appBar: AppBar(
         surfaceTintColor: Colors.transparent,
         backgroundColor: Colors.white,
+        elevation: 0,
         title: TextWidget(
           text: 'Setup Profile',
           fontSize: 24,
           fontWeight: FontWeight.w600,
+          color: Colors.black87,
         ),
       ),
       body: SingleChildScrollView(
@@ -87,208 +89,56 @@ class _RegisterStudentState extends State<RegisterStudent> {
                 Row(
                   children: [
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TextWidget(text: 'First Name', fontSize: 14),
-                          SizedBox(height: 4),
-                          TextFormField(
-                            textInputAction: TextInputAction.next,
-                            textCapitalization: TextCapitalization.words,
-                            keyboardType: TextInputType.name,
-                            controller: _firstNameCtrl,
-                            decoration: InputDecoration(
-                              hintText: 'First Name',
-                              border: OutlineInputBorder(
-                                borderRadius: formRadius,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                      child: _buildTextField('First Name', _firstNameCtrl),
                     ),
                     SizedBox(width: 16),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TextWidget(text: 'Last Name', fontSize: 14),
-                          SizedBox(height: 4),
-                          TextFormField(
-                            textInputAction: TextInputAction.next,
-                            textCapitalization: TextCapitalization.words,
-                            keyboardType: TextInputType.name,
-                            controller: _lastNameCtrl,
-                            decoration: InputDecoration(
-                              hintText: 'Last Name',
-                              border: OutlineInputBorder(
-                                borderRadius: formRadius,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                      child: _buildTextField('Last Name', _lastNameCtrl),
                     ),
                   ],
                 ),
                 SizedBox(height: 20),
-                TextWidget(text: 'Roll Number', fontSize: 14),
-                SizedBox(height: 4),
-                TextFormField(
-                  style: TextStyle(color: Colors.grey),
-                  readOnly: true,
-                  textInputAction: TextInputAction.next,
-                  keyboardType: TextInputType.number,
-                  controller: _rollNoCtrl,
-                  decoration: InputDecoration(
-                    hintText: 'Enter Roll No.',
-                    border: OutlineInputBorder(borderRadius: formRadius),
-                    focusedBorder: OutlineInputBorder(borderRadius: formRadius),
-                  ),
-                ),
+                _buildReadOnlyField('Roll Number', _rollNoCtrl),
                 SizedBox(height: 20),
-                TextWidget(text: 'Email', fontSize: 14),
-                SizedBox(height: 4),
-                TextFormField(
-                  style: TextStyle(color: Colors.grey),
-                  readOnly: true,
-                  controller: _emailCtrl,
-                  decoration: InputDecoration(
-                    hintText: 'Enter Email',
-                    border: OutlineInputBorder(borderRadius: formRadius),
-                    focusedBorder: OutlineInputBorder(borderRadius: formRadius),
-                  ),
-                ),
+                _buildReadOnlyField('Email', _emailCtrl),
                 SizedBox(height: 20),
                 Row(
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          TextWidget(text: 'Select Course', fontSize: 14),
-                          SizedBox(height: 4),
-                          DropdownButtonFormField<String>(
-                            dropdownColor: Colors.white,
-                            isExpanded: true,
-                            decoration: InputDecoration(
-                              hintText: 'Select course',
-                              border: OutlineInputBorder(
-                                borderRadius: formRadius,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
-                              ),
-                            ),
-                            value: _selectedCourse,
-                            items: _courses
-                                .map(
-                                  (s) => DropdownMenuItem<String>(
-                                    value: s,
-                                    child: Text(s),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) async {
-                              final sem = await _studentService.getSemesters(
-                                courseId: value!,
-                              );
-                              setState(() {
-                                _sem = sem;
-                                _selectedCourse = value;
-                              });
-                            },
-                            validator: (v) =>
-                                v == null ? 'Please select a course' : null,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          TextWidget(text: 'Select Semester', fontSize: 14),
-                          SizedBox(height: 4),
-                          DropdownButtonFormField<String>(
-                            dropdownColor: Colors.white,
-                            isExpanded: true,
-                            decoration: InputDecoration(
-                              hintText: 'Semester',
-                              border: OutlineInputBorder(
-                                borderRadius: formRadius,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
-                              ),
-                            ),
-                            value: _selectedSem,
-                            items: _sem
-                                .map(
-                                  (s) => DropdownMenuItem<String>(
-                                    value: s,
-                                    child: Text(s),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) async {
-                              final sections = await _studentService
-                                  .getSections(
-                                    courseId: _selectedCourse!,
-                                    semId: value!,
-                                  );
-                              final subjects = await _studentService
-                                  .getSubjects(
-                                    courseId: _selectedCourse!,
-                                    semId: value,
-                                  );
-                              setState(() {
-                                _subjects = subjects;
-                                _sections = sections;
-                                _selectedSem = value;
-                              });
-                            },
-                            validator: (v) =>
-                                v == null ? 'Please select a section' : null,
-                          ),
-                        ],
-                      ),
-                    ),
+                    Expanded(child: _buildDropdown('Select Course', _courses, _selectedCourse, (value) async {
+                      final sem = await _studentService.getSemesters(courseId: value!);
+                      setState(() {
+                        _sem = sem;
+                        _selectedCourse = value;
+                      });
+                    })),
+                    SizedBox(width: 16),
+                    Expanded(child: _buildDropdown('Select Semester', _sem, _selectedSem, (value) async {
+                      final sections = await _studentService.getSections(
+                        courseId: _selectedCourse!,
+                        semId: value!,
+                      );
+                      final subjects = await _studentService.getSubjects(
+                        courseId: _selectedCourse!,
+                        semId: value,
+                      );
+                      setState(() {
+                        _sections = sections;
+                        _subjects = subjects;
+                        _selectedSem = value;
+                      });
+                    })),
                   ],
                 ),
                 SizedBox(height: 20),
-                TextWidget(text: 'Select Section', fontSize: 14),
-                SizedBox(height: 4),
-                DropdownButtonFormField<String>(
-                  dropdownColor: Colors.white,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    hintText: 'Section',
-                    border: OutlineInputBorder(borderRadius: formRadius),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
-                  ),
-                  value: _selectedSection,
-                  items: _sections
-                      .map(
-                        (s) =>
-                            DropdownMenuItem<String>(value: s, child: Text(s)),
-                      )
-                      .toList(),
-                  onChanged: (value) =>
-                      setState(() => _selectedSection = value),
-                  validator: (v) =>
-                      v == null ? 'Please select a section' : null,
-                ),
+                _buildDropdown('Select Section', _sections, _selectedSection,
+                        (value) => setState(() => _selectedSection = value)),
                 SizedBox(height: 20),
-                TextWidget(text: 'Semester Subjects'),
+                TextWidget(
+                  text: 'Semester Subjects',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
                 ListView.builder(
                   shrinkWrap: true,
                   physics: NeverScrollableScrollPhysics(),
@@ -296,12 +146,12 @@ class _RegisterStudentState extends State<RegisterStudent> {
                   itemBuilder: (context, index) {
                     final subject = _subjects[index];
                     return Card(
-                      elevation: 3,
+                      elevation: 2,
+                      color: Colors.grey.shade50,
+                      shadowColor: Colors.grey.withOpacity(0.15),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      color: Colors.white,
-                      shadowColor: Colors.grey.withOpacity(0.3),
                       margin: const EdgeInsets.symmetric(
                         vertical: 8,
                         horizontal: 4,
@@ -341,52 +191,54 @@ class _RegisterStudentState extends State<RegisterStudent> {
                     );
                   },
                 ),
+                SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF1E88E5),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: formRadius,
+                      ),
+                    ),
+                    onPressed: () async {
+                      final isValid = _formKey.currentState?.validate() ?? false;
+                      if (!isValid) return;
 
-                SizedBox(height: 20),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size(180, 40),
-                    backgroundColor: Colors.white,
-                  ),
-                  onPressed: () async {
-                    final isValid = _formKey.currentState?.validate() ?? false;
-                    if (!isValid) return;
+                      final registered = await _studentService.registerStudents(
+                        sem: _selectedSem.toString(),
+                        email: _emailCtrl.text,
+                        firstName: _firstNameCtrl.text,
+                        lastName: _lastNameCtrl.text,
+                        roll: _rollNoCtrl.text,
+                        course: _selectedCourse.toString(),
+                        section: _selectedSection.toString(),
+                        subjects: _subjects,
+                      );
 
-                    final registered = await _studentService.registerStudents(
-                      sem: _selectedSem.toString(),
-                      email: _emailCtrl.text,
-                      firstName: _firstNameCtrl.text,
-                      lastName: _lastNameCtrl.text,
-                      roll: _rollNoCtrl.text,
-                      course: _selectedCourse.toString(),
-                      section: _selectedSection.toString(),
-                      subjects: _subjects
-                    );
-
-                    if (registered) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Student registered successfully'),
-                        ),
-                      );
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const StudentDashboard(),
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Roll number already registered'),
-                        ),
-                      );
-                    }
-                  },
-                  child: TextWidget(
-                    text: 'Register',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 18,
+                      if (registered) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Student registered successfully')),
+                        );
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const StudentDashboard(),
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Roll number already registered')),
+                        );
+                      }
+                    },
+                    child: TextWidget(
+                      text: 'Register',
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -394,6 +246,75 @@ class _RegisterStudentState extends State<RegisterStudent> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField(String label, TextEditingController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextWidget(text: label, fontSize: 14, color: Colors.black87),
+        SizedBox(height: 4),
+        TextFormField(
+          style: TextStyle(color: Colors.black87),
+          textInputAction: TextInputAction.next,
+          textCapitalization: TextCapitalization.words,
+          keyboardType: TextInputType.name,
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: label,
+            border: OutlineInputBorder(borderRadius: formRadius),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReadOnlyField(String label, TextEditingController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextWidget(text: label, fontSize: 14, color: Colors.black87),
+        SizedBox(height: 4),
+        TextFormField(
+          readOnly: true,
+          style: TextStyle(color: Colors.black54),
+          controller: controller,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(borderRadius: formRadius),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDropdown(
+      String label,
+      List<String> items,
+      String? selectedValue,
+      Function(String?) onChanged,
+      ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextWidget(text: label, fontSize: 14, color: Colors.black87),
+        SizedBox(height: 4),
+        DropdownButtonFormField<String>(
+          dropdownColor: Colors.white,
+          isExpanded: true,
+          value: selectedValue,
+          decoration: InputDecoration(
+            hintText: label,
+            border: OutlineInputBorder(borderRadius: formRadius),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+          items: items.map((item) {
+            return DropdownMenuItem(value: item, child: Text(item));
+          }).toList(),
+          onChanged: onChanged,
+          validator: (v) => v == null ? 'Please select' : null,
+        ),
+      ],
     );
   }
 }

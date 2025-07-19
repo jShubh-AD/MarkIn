@@ -32,6 +32,7 @@ class RegisterStudentService {
       role: 'student',
       rollNumber: roll,
       section: section,
+      updatedTime: FieldValue.serverTimestamp() as Timestamp
     );
     await docRef.set(student.toMap());
 
@@ -43,7 +44,7 @@ class RegisterStudentService {
         totalPresent: 0,
         markedDates: [],
       );
-      await docRef.collection('attendance').doc().set(attendance.toMap());
+      await docRef.collection('attendance').doc(subject.subjectCode).set(attendance.toMap());
     }
 
     return true;
