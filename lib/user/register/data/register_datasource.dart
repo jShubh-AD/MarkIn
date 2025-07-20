@@ -19,10 +19,12 @@ class RegisterStudentService {
     required String section,
     required List<SubjectModel> subjects,
   }) async {
-    final docRef = studentInstance.doc(roll.trim());
+    final docRef = studentInstance.doc(roll);
+
     final doc = await docRef.get();
 
     if (!doc.exists) return false;
+
     final student = StudentModel(
       sem: sem,
       course: course,
@@ -32,7 +34,7 @@ class RegisterStudentService {
       role: 'student',
       rollNumber: roll,
       section: section,
-      updatedTime: FieldValue.serverTimestamp() as Timestamp
+      updatedTime: Timestamp.now()
     );
     await docRef.set(student.toMap());
 
@@ -46,6 +48,14 @@ class RegisterStudentService {
       );
       await docRef.collection('attendance').doc(subject.subjectCode).set(attendance.toMap());
     }
+
+    /// add student roll in their selected Course, Sem, and section
+
+    final sectionDoc = courseInstance.doc(course).collection('semesters').doc(sem).collection('sections').doc(section);
+
+    await sectionDoc.update({
+      'students': FieldValue.arrayUnion([roll])
+    });
 
     return true;
   }
@@ -92,10 +102,11 @@ class RegisterStudentService {
         .doc(courseId)
         .collection('semesters')
         .doc(semId)
-        .collection('subjects_sem3')
+        .collection('sem_subjects')
         .get();
     return querySnapshot.docs
         .map((doc) => SubjectModel.fromMap(doc.data()))
         .toList();
   }
+
 }

@@ -16,7 +16,7 @@ class RegisterStudent extends StatefulWidget {
 
 class _RegisterStudentState extends State<RegisterStudent> {
   final RegisterStudentService _studentService = RegisterStudentService();
-  final BorderRadius formRadius = BorderRadius.circular(8);
+  final BorderRadius formRadius = BorderRadius.circular(12); // Slightly larger radius for softer look
 
   final _formKey = GlobalKey<FormState>();
   List<String> _sections = [];
@@ -33,25 +33,62 @@ class _RegisterStudentState extends State<RegisterStudent> {
   String? _selectedCourse;
   String? _selectedSem;
 
+  bool _isLoading = true; // Added loading state
+  String? _errorMessage; // Added error message state
+
   @override
   void initState() {
     super.initState();
-    _emailCtrl.text = FirebaseAuth.instance.currentUser!.email!;
-    _loadRollFromPrefs();
-    loadCourses();
+    // Ensure currentUser is not null before accessing its email
+    _emailCtrl.text = FirebaseAuth.instance.currentUser?.email ?? '';
+    _initializeProfileSetup();
   }
 
-  Future<void> loadCourses() async {
-    final coursesLoaded = await _studentService.getCourses();
+  Future<void> _initializeProfileSetup() async {
     setState(() {
-      _courses = coursesLoaded;
+      _isLoading = true;
+      _errorMessage = null;
     });
+    try {
+      await _loadRollFromPrefs();
+      await _loadCourses();
+    } catch (e) {
+      setState(() {
+        _errorMessage = "Failed to load initial data: ${e.toString()}";
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_errorMessage ?? "An unknown error occurred during initialization")),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadCourses() async {
+    try {
+      final coursesLoaded = await _studentService.getCourses();
+      setState(() {
+        _courses = coursesLoaded;
+      });
+    } catch (e) {
+      throw Exception("Failed to load courses: ${e.toString()}");
+    }
   }
 
   Future<void> _loadRollFromPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedRoll = prefs.getString('roll_number') ?? '';
-    _rollNoCtrl.text = savedRoll;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedRoll = prefs.getString('roll_number');
+      if (savedRoll != null && savedRoll.isNotEmpty) {
+        _rollNoCtrl.text = savedRoll;
+      } else {
+        throw Exception("Roll number not found in preferences.");
+      }
+    } catch (e) {
+      throw Exception("Failed to load roll number from preferences: ${e.toString()}");
+    }
   }
 
   @override
@@ -74,13 +111,40 @@ class _RegisterStudentState extends State<RegisterStudent> {
         title: TextWidget(
           text: 'Setup Profile',
           fontSize: 24,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700, // Slightly bolder title
           color: Colors.black87,
         ),
+        iconTheme: const IconThemeData(color: Colors.black87), // Ensure back button is visible
       ),
-      body: SingleChildScrollView(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+          ? Center(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 50),
+              const SizedBox(height: 10),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.red, fontSize: 16),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: _initializeProfileSetup,
+                icon: const Icon(Icons.refresh),
+                label: const Text("Retry"),
+              ),
+            ],
+          ),
+        ),
+      )
+          : SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20), // Increased padding for more space
           child: Form(
             key: _formKey,
             child: Column(
@@ -91,66 +155,146 @@ class _RegisterStudentState extends State<RegisterStudent> {
                     Expanded(
                       child: _buildTextField('First Name', _firstNameCtrl),
                     ),
-                    SizedBox(width: 16),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: _buildTextField('Last Name', _lastNameCtrl),
                     ),
                   ],
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 24), // Increased spacing
                 _buildReadOnlyField('Roll Number', _rollNoCtrl),
-                SizedBox(height: 20),
+                const SizedBox(height: 24),
                 _buildReadOnlyField('Email', _emailCtrl),
-                SizedBox(height: 20),
+                const SizedBox(height: 24),
                 Row(
                   children: [
-                    Expanded(child: _buildDropdown('Select Course', _courses, _selectedCourse, (value) async {
-                      final sem = await _studentService.getSemesters(courseId: value!);
-                      setState(() {
-                        _sem = sem;
-                        _selectedCourse = value;
-                      });
-                    })),
-                    SizedBox(width: 16),
-                    Expanded(child: _buildDropdown('Select Semester', _sem, _selectedSem, (value) async {
-                      final sections = await _studentService.getSections(
-                        courseId: _selectedCourse!,
-                        semId: value!,
-                      );
-                      final subjects = await _studentService.getSubjects(
-                        courseId: _selectedCourse!,
-                        semId: value,
-                      );
-                      setState(() {
-                        _sections = sections;
-                        _subjects = subjects;
-                        _selectedSem = value;
-                      });
-                    })),
+                    Expanded(
+                      child: _buildDropdown(
+                        'Select Course',
+                        _courses,
+                        _selectedCourse,
+                            (value) async {
+                          if (value == null) return;
+                          setState(() {
+                            _isLoading = true; // Show loading when fetching next data
+                          });
+                          try {
+                            final sem = await _studentService.getSemesters(
+                              courseId: value,
+                            );
+                            setState(() {
+                              _sem = sem;
+                              _selectedCourse = value;
+                              _selectedSem = null;
+                              _selectedSection = null;
+                              _sections = [];
+                              _subjects = [];
+                            });
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Failed to load semesters: ${e.toString()}")),
+                            );
+                            // Keep selected course, but clear dependent fields
+                            setState(() {
+                              _selectedSem = null;
+                              _selectedSection = null;
+                              _sections = [];
+                              _subjects = [];
+                            });
+                          } finally {
+                            setState(() {
+                              _isLoading = false;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildDropdown(
+                        'Select Semester',
+                        _sem,
+                        _selectedSem,
+                            (value) async {
+                          if (value == null || _selectedCourse == null) return;
+                          setState(() {
+                            _isLoading = true; // Show loading when fetching next data
+                          });
+                          try {
+                            final sections = await _studentService.getSections(
+                              courseId: _selectedCourse!,
+                              semId: value,
+                            );
+                            final subjects = await _studentService.getSubjects(
+                              courseId: _selectedCourse!,
+                              semId: value,
+                            );
+                            setState(() {
+                              _sections = sections;
+                              _subjects = subjects;
+                              _selectedSem = value;
+                              _selectedSection = null; // Reset section when semester changes
+                            });
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Failed to load sections/subjects: ${e.toString()}")),
+                            );
+                            // Keep selected semester, but clear dependent fields
+                            setState(() {
+                              _sections = [];
+                              _subjects = [];
+                              _selectedSection = null;
+                            });
+                          } finally {
+                            setState(() {
+                              _isLoading = false;
+                            });
+                          }
+                        },
+                      ),
+                    ),
                   ],
                 ),
-                SizedBox(height: 20),
-                _buildDropdown('Select Section', _sections, _selectedSection,
-                        (value) => setState(() => _selectedSection = value)),
-                SizedBox(height: 20),
+                const SizedBox(height: 24),
+                _buildDropdown(
+                  'Select Section',
+                  _sections,
+                  _selectedSection,
+                      (value) => setState(() => _selectedSection = value),
+                ),
+                const SizedBox(height: 30), // Increased spacing
                 TextWidget(
                   text: 'Semester Subjects',
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 18, // Slightly larger font size
+                  fontWeight: FontWeight.w700, // Bolder
                   color: Colors.black87,
                 ),
-                ListView.builder(
+                const SizedBox(height: 12), // Spacing below title
+                _subjects.isEmpty
+                    ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20.0),
+                    child: Text(
+                      _selectedSem == null
+                          ? "Please select a course and semester to view subjects."
+                          : "No subjects found for the selected semester.",
+                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+                    : ListView.builder(
                   shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
+                  physics: const NeverScrollableScrollPhysics(),
                   itemCount: _subjects.length,
                   itemBuilder: (context, index) {
                     final subject = _subjects[index];
                     return Card(
-                      elevation: 2,
-                      color: Colors.grey.shade50,
-                      shadowColor: Colors.grey.withOpacity(0.15),
+                      elevation: 4, // More prominent elevation
+                      color: Colors.blueGrey.shade50, // Softer background color
+                      shadowColor: Colors.blueGrey.withOpacity(0.1),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(18), // Larger radius
                       ),
                       margin: const EdgeInsets.symmetric(
                         vertical: 8,
@@ -158,8 +302,8 @@ class _RegisterStudentState extends State<RegisterStudent> {
                       ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
+                          horizontal: 20, // Increased horizontal padding
+                          vertical: 15, // Increased vertical padding
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,23 +311,28 @@ class _RegisterStudentState extends State<RegisterStudent> {
                             LabeledText(
                               label: 'Subject: ',
                               value: subject.subjectName,
-                              labelWeight: FontWeight.w600,
+                              labelWeight: FontWeight.w700, // Bolder label
+                              valueColor: Colors.black87,
+                              labelFontSize: 16,
+                              valueFontSize: 16,
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 4),
                             LabeledText(
                               label: 'Teacher: ',
                               value: subject.subjectTeacher,
                               labelWeight: FontWeight.w600,
-                              labelFontSize: 15,
+                              labelFontSize: 14,
                               valueFontSize: 14,
+                              valueColor: Colors.grey[700],
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 4),
                             LabeledText(
                               label: 'Code: ',
                               value: subject.subjectCode,
                               labelWeight: FontWeight.w600,
-                              labelFontSize: 15,
+                              labelFontSize: 14,
                               valueFontSize: 14,
+                              valueColor: Colors.grey[700],
                             ),
                           ],
                         ),
@@ -191,56 +340,94 @@ class _RegisterStudentState extends State<RegisterStudent> {
                     );
                   },
                 ),
-                SizedBox(height: 24),
+                const SizedBox(height: 30), // Increased spacing before button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF1E88E5),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: formRadius,
-                      ),
+                      backgroundColor: const Color(0xFF1E88E5), // Material Blue 600
+                      padding: const EdgeInsets.symmetric(vertical: 16), // Taller button
+                      shape: RoundedRectangleBorder(borderRadius: formRadius),
+                      elevation: 8, // More prominent shadow
                     ),
                     onPressed: () async {
-                      final isValid = _formKey.currentState?.validate() ?? false;
-                      if (!isValid) return;
+                      if (_formKey.currentState?.validate() ?? false) {
+                        if (_selectedCourse == null || _selectedSem == null || _selectedSection == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please select Course, Semester, and Section.'),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                          return;
+                        }
 
-                      final registered = await _studentService.registerStudents(
-                        sem: _selectedSem.toString(),
-                        email: _emailCtrl.text,
-                        firstName: _firstNameCtrl.text,
-                        lastName: _lastNameCtrl.text,
-                        roll: _rollNoCtrl.text,
-                        course: _selectedCourse.toString(),
-                        section: _selectedSection.toString(),
-                        subjects: _subjects,
-                      );
+                        setState(() {
+                          _isLoading = true; // Show loading indicator during registration
+                        });
 
-                      if (registered) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Student registered successfully')),
-                        );
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const StudentDashboard(),
-                          ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Roll number already registered')),
-                        );
+                        try {
+                          final registered = await _studentService.registerStudents(
+                            sem: _selectedSem!,
+                            email: _emailCtrl.text,
+                            firstName: _firstNameCtrl.text,
+                            lastName: _lastNameCtrl.text,
+                            roll: _rollNoCtrl.text,
+                            course: _selectedCourse!,
+                            section: _selectedSection!,
+                            subjects: _subjects,
+                          );
+
+                          if (registered) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Student registered successfully!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const StudentDashboard(),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Registration failed: Roll number may already be registered or an internal error occurred.'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('An error occurred during registration: ${e.toString()}'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        } finally {
+                          setState(() {
+                            _isLoading = false;
+                          });
+                        }
                       }
                     },
-                    child: TextWidget(
+                    child: _isLoading // Show a CircularProgressIndicator on the button
+                        ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                    )
+                        : TextWidget(
                       text: 'Register',
                       color: Colors.white,
                       fontSize: 20,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700, // Bolder text
                     ),
                   ),
                 ),
+                const SizedBox(height: 20), // Bottom padding
               ],
             ),
           ),
@@ -253,18 +440,38 @@ class _RegisterStudentState extends State<RegisterStudent> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextWidget(text: label, fontSize: 14, color: Colors.black87),
-        SizedBox(height: 4),
+        TextWidget(text: label, fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87), // Slightly larger label font
+        const SizedBox(height: 6), // More space below label
         TextFormField(
-          style: TextStyle(color: Colors.black87),
+          style: const TextStyle(color: Colors.black87),
           textInputAction: TextInputAction.next,
           textCapitalization: TextCapitalization.words,
           keyboardType: TextInputType.name,
           controller: controller,
           decoration: InputDecoration(
             hintText: label,
-            border: OutlineInputBorder(borderRadius: formRadius),
+            filled: true,
+            fillColor: Colors.grey.shade50, // Light fill color
+            border: OutlineInputBorder(
+              borderRadius: formRadius,
+              borderSide: BorderSide.none, // No border for a cleaner look
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: formRadius,
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: formRadius,
+              borderSide: const BorderSide(color: Color(0xFF1E88E5), width: 2), // Blue border when focused
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter your $label';
+            }
+            return null;
+          },
         ),
       ],
     );
@@ -274,14 +481,28 @@ class _RegisterStudentState extends State<RegisterStudent> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextWidget(text: label, fontSize: 14, color: Colors.black87),
-        SizedBox(height: 4),
+        TextWidget(text: label, fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87),
+        const SizedBox(height: 6),
         TextFormField(
           readOnly: true,
-          style: TextStyle(color: Colors.black54),
+          style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.w500),
           controller: controller,
           decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: formRadius),
+            filled: true,
+            fillColor: Colors.grey.shade100, // Slightly darker grey for read-only
+            border: OutlineInputBorder(
+              borderRadius: formRadius,
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: formRadius,
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: formRadius,
+              borderSide: BorderSide.none, // No focus border for read-only
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
         ),
       ],
@@ -297,22 +518,45 @@ class _RegisterStudentState extends State<RegisterStudent> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextWidget(text: label, fontSize: 14, color: Colors.black87),
-        SizedBox(height: 4),
+        TextWidget(text: label, fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87),
+        const SizedBox(height: 6),
         DropdownButtonFormField<String>(
           dropdownColor: Colors.white,
           isExpanded: true,
           value: selectedValue,
           decoration: InputDecoration(
-            hintText: label,
-            border: OutlineInputBorder(borderRadius: formRadius),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            hintText: label.toLowerCase().replaceFirst('select ', ''),
+            filled: true,
+            fillColor: Colors.grey.shade50,
+            border: OutlineInputBorder(
+              borderRadius: formRadius,
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: formRadius,
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: formRadius,
+              borderSide: const BorderSide(color: Color(0xFF1E88E5), width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
           ),
           items: items.map((item) {
-            return DropdownMenuItem(value: item, child: Text(item));
+            return DropdownMenuItem(
+              value: item,
+              child: Text(
+                item,
+                style: const TextStyle(color: Colors.black87),
+              ),
+            );
           }).toList(),
           onChanged: onChanged,
-          validator: (v) => v == null ? 'Please select' : null,
+          validator: (v) => v == null ? 'Please select a ${label.toLowerCase().replaceFirst('select ', '')}' : null,
+          icon: const Icon(Icons.arrow_drop_down, color: Colors.black54), // Custom dropdown icon
         ),
       ],
     );
