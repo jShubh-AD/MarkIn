@@ -545,107 +545,113 @@ class _TeacherRegisterState extends State<TeacherRegister> {
                                 final _assignedSubjects = _previewAssignedSujects[index];
                                 return Card(
                                   elevation: 4,
-                                  // More prominent elevation
                                   color: Colors.blueGrey.shade50.withOpacity(0.5),
-                                  // Changed to white for consistency with overall app theme
-                                  shadowColor: Color(0xFF1E88E5).withOpacity(0.1),
-                                  // Using _primaryBlue for shadow
+                                  shadowColor: const Color(0xFF1E88E5).withOpacity(0.1),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      18,
-                                    ), // Larger radius
+                                    borderRadius: BorderRadius.circular(18),
                                   ),
-                                  margin: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                    horizontal: 4,
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal:
-                                          20, // Increased horizontal padding
-                                      vertical:
-                                          15, // Increased vertical padding
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        LabeledText(
-                                          label: 'Subject: ',
-                                          value: _assignedSubjects.subjectName,
-                                          // Assuming _selectedSubjects is the SubjectModel
-                                          labelWeight: FontWeight.w700,
-                                          // Bolder label
-                                          valueColor: Colors.black87,
-                                          labelFontSize: 16,
-                                          valueFontSize: 16,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        LabeledText(
-                                          label: 'Subject Code: ',
-                                          value: _assignedSubjects.subjectId,
-                                          // Assuming _selectedSubjects is the SubjectModel
-                                          labelWeight: FontWeight.w700,
-                                          // Bolder label
-                                          valueColor: Colors.black87,
-                                          labelFontSize: 16,
-                                          valueFontSize: 16,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        LabeledText(
-                                          label: 'Teacher:  ',
-                                          value:_assignedSubjects.teacherName,
-                                          labelWeight: FontWeight.w600,
-                                          labelFontSize: 14,
-                                          valueFontSize: 14,
-                                          valueColor: Colors.grey[700],
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Wrap(
-                                          runSpacing: 4,
-                                          spacing: 4,
+                                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                                  child: Stack(
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Expanded(
-                                              child: LabeledText(
-                                                label: 'Course:  ',
-                                                value:_assignedSubjects.courseId,
-                                                labelWeight: FontWeight.w600,
-                                                labelFontSize: 14,
-                                                valueFontSize: 14,
-                                                valueColor: Colors.grey[700],
-                                              ),
+                                            const SizedBox(height: 4), // spacing for icon
+                                            LabeledText(
+                                              label: 'Subject: ',
+                                              value: _assignedSubjects.subjectName,
+                                              labelWeight: FontWeight.w700,
+                                              valueColor: Colors.black87,
+                                              labelFontSize: 16,
+                                              valueFontSize: 16,
                                             ),
-                                            const Text(' | ', style: TextStyle(fontWeight: FontWeight.bold)),
-                                            Expanded(
-                                              child: LabeledText(
-                                                label: 'Sem:  ',
-                                                value:_assignedSubjects.semesterId,
-                                                labelWeight: FontWeight.w600,
-                                                labelFontSize: 14,
-                                                valueFontSize: 14,
-                                                valueColor: Colors.grey[700],
-                                              ),
+                                            const SizedBox(height: 4),
+                                            LabeledText(
+                                              label: 'Subject Code: ',
+                                              value: _assignedSubjects.subjectId,
+                                              labelWeight: FontWeight.w600,
+                                              valueColor: Colors.black87,
+                                              labelFontSize: 16,
+                                              valueFontSize: 16,
                                             ),
-                                            const Text(' | ', style: TextStyle(fontWeight: FontWeight.bold)),
-                                            Expanded(
-                                              child: LabeledText(
-                                                label: 'Sec:  ',
-                                                value:_assignedSubjects.sectionId,
-                                                labelWeight: FontWeight.w600,
-                                                labelFontSize: 14,
-                                                valueFontSize: 14,
-                                                valueColor: Colors.grey[700],
-                                              ),
+                                            const SizedBox(height: 4),
+                                            LabeledText(
+                                              label: 'Teacher:  ',
+                                              value: _assignedSubjects.teacherName,
+                                              labelWeight: FontWeight.w600,
+                                              labelFontSize: 16,
+                                              valueFontSize: 16,
+                                              valueColor: Colors.black87,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Wrap(
+                                              spacing: 4,
+                                              runSpacing: 4,
+                                              children: [
+                                                Expanded(
+                                                  child: LabeledText(
+                                                    label: 'Course:  ',
+                                                    value: _assignedSubjects.courseId,
+                                                    labelWeight: FontWeight.w600,
+                                                    labelFontSize: 14,
+                                                    valueFontSize: 14,
+                                                    valueColor: Colors.grey[700],
+                                                  ),
+                                                ),
+                                                const Text(' | ', style: TextStyle(fontWeight: FontWeight.bold)),
+                                                Expanded(
+                                                  child: LabeledText(
+                                                    label: 'Sem:  ',
+                                                    value: _assignedSubjects.semesterId,
+                                                    labelWeight: FontWeight.w600,
+                                                    labelFontSize: 14,
+                                                    valueFontSize: 14,
+                                                    valueColor: Colors.grey[700],
+                                                  ),
+                                                ),
+                                                const Text(' | ', style: TextStyle(fontWeight: FontWeight.bold)),
+                                                Expanded(
+                                                  child: LabeledText(
+                                                    label: 'Sec:  ',
+                                                    value: _assignedSubjects.sectionId,
+                                                    labelWeight: FontWeight.w600,
+                                                    labelFontSize: 14,
+                                                    valueFontSize: 14,
+                                                    valueColor: Colors.grey[700],
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ],
                                         ),
-                                        const SizedBox(height: 4),
+                                      ),
 
-                                        // --- Start of adjusted Teacher/Sections display ---
-                                      ],
-                                    ),
+                                      // ❌ Close Icon
+                                      Positioned(
+                                        top: -10,
+                                        right: -10,
+                                        child: IconButton(
+                                          onPressed: () {
+                                            setState(() {
+                                              _teacherService.removeAssignedSubject(docId: _assignedSubjects.assignmentId);
+                                              _previewAssignedSujects.removeAt(index);
+                                            });
+                                          },
+                                          icon: const Icon(
+                                            Icons.cancel,
+                                            size: 30, // larger icon size
+                                            color: Colors.black87,
+                                          ),
+                                          iconSize: 30, // applies to the whole IconButton
+                                          splashRadius: 24, // optional: control splash size
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 );
+
                               },
                             ),
                       const SizedBox(height: 30),

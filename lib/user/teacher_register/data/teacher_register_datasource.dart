@@ -120,5 +120,14 @@ class RegisterTeacherDatasource {
     return true;
   }
 
+  Future<void> removeAssignedSubject ({required String? docId}) async{
+    final docRef = _fsInstance.collection('subject_assignments').doc(docId);
+
+    final removed = await docRef.delete();
+
+    return removed;
+
+  }
+
 
 }

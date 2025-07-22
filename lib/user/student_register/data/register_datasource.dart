@@ -21,10 +21,6 @@ class RegisterStudentService {
   }) async {
     final docRef = studentInstance.doc(roll);
 
-    final doc = await docRef.get();
-
-    if (!doc.exists) return false;
-
     final student = StudentModel(
       sem: sem,
       course: course,
@@ -36,7 +32,8 @@ class RegisterStudentService {
       section: section,
       updatedTime: Timestamp.now()
     );
-    await docRef.set(student.toMap());
+
+    await docRef.set(student.toMap(), SetOptions(merge:  true));
 
     for (var subject in subjects) {
       final attendance = SubjectAttendanceModel(
@@ -44,9 +41,9 @@ class RegisterStudentService {
         subjectCode: subject.subjectCode,
         totalPresent: 0,
         markedDates: [],
-        subjectTeacher: '',
+        subjectTeacher: ''
       );
-      await docRef.collection('attendance').doc(subject.subjectCode).set(attendance.toMap());
+      await docRef.collection('attendance').doc(subject.subjectCode).set(attendance.toMap(),SetOptions(merge: true));
     }
 
     /// add student roll in their selected Course, Sem, and section
