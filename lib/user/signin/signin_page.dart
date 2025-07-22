@@ -1,12 +1,12 @@
 import 'package:attendence/Homepage/student_dashboard.dart';
 import 'package:attendence/core/auth/aurth_service.dart';
-import 'package:attendence/user/register/presentation/student_register.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../Homepage/teacher_dashboard.dart';
+import '../student_register/presentation/student_register.dart';
+import '../teacher_register/presentation/teacher_register.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -220,15 +220,32 @@ class _SignInPageState extends State<SignInPage> {
                         );
                       }
                     } else {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (_) => const TeacherDashboard()),
-                      );
-                    }
-                    _rollController.clear();
-                    _emailController.clear();
-                    _passwordController.clear();
-                  } on FirebaseAuthException catch (e) {
+                      final docRef = FirebaseFirestore.instance.collection('teachers').doc(email);
+
+                      final docSnap = await docRef.get();
+
+                      if(docSnap.exists){
+                        Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder:
+                                (_) => TeacherDashboard())
+                        );
+                      } else {
+                        await docRef.set(
+                            {
+                              'email': email,
+                              'registered_at': FieldValue.serverTimestamp(),
+                            });
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const TeacherRegister()),
+                        );
+                      }
+                      _rollController.clear();
+                      _emailController.clear();
+                      _passwordController.clear();
+
+                    }}on FirebaseAuthException catch (e) {
                     String message = '❌ Login failed';
 
                     if (e.code == 'user-not-found') {

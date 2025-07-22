@@ -1,13 +1,12 @@
 import 'package:attendence/settings/student_profile/data/student_profile_datasource.dart';
 import 'package:attendence/subject/data/subject_model.dart';
-import 'package:attendence/user/register/data/student_model.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../../core/auth/aurth_service.dart';
 import '../../../core/widgets/lable_text.dart';
 import '../../../core/widgets/text_widget.dart';
 import '../../../user/signin/signin_page.dart';
+import '../../../user/student_register/data/student_model.dart';
 
 class StudentProfile extends StatefulWidget {
   const StudentProfile({super.key});
@@ -84,9 +83,9 @@ class _StudentProfileState extends State<StudentProfile> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         centerTitle: true,
-        title: const Text(
-          'Account',
-          style: TextStyle(
+        title: Text(
+          '${studentData!.firstName}\'s Account',
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.black,
           ),
@@ -243,8 +242,8 @@ class _StudentProfileState extends State<StudentProfile> {
                             ),
                             const SizedBox(height: 4),
                             LabeledText(
-                              label: 'Teacher: ',
-                              value: subject.subjectTeacher,
+                              label: 'Section: ',
+                              value: studentData!.section,
                               labelWeight: FontWeight.w600,
                               labelFontSize: 14,
                               valueFontSize: 14,
@@ -318,10 +317,7 @@ class _StudentProfileState extends State<StudentProfile> {
                       // Clear shared preferences upon successful logout
                       final prefs = await SharedPreferences.getInstance();
                       await prefs.clear(); // Clears all saved data, including roll_number
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => const SignInPage()),
-                      );
+                     Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context)=>SignInPage()), (Route<dynamic> route) => false);
                     } catch (e) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text("Error logging out: ${e.toString()}")),

@@ -1,6 +1,6 @@
 import 'package:attendence/subject/data/subject_model.dart';
-import 'package:attendence/user/register/data/student_attendance_model.dart';
-import 'package:attendence/user/register/data/student_model.dart';
+import 'package:attendence/user/student_register/data/student_attendance_model.dart';
+import 'package:attendence/user/student_register/data/student_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterStudentService {
@@ -40,11 +40,11 @@ class RegisterStudentService {
 
     for (var subject in subjects) {
       final attendance = SubjectAttendanceModel(
-        subjectTeacher: subject.subjectTeacher,
         subjectName: subject.subjectName,
         subjectCode: subject.subjectCode,
         totalPresent: 0,
         markedDates: [],
+        subjectTeacher: '',
       );
       await docRef.collection('attendance').doc(subject.subjectCode).set(attendance.toMap());
     }

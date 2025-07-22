@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:math';
-
 import 'package:attendence/core/auth/aurth_service.dart';
 import 'package:attendence/user/signin/signin_page.dart';
+import 'package:attendence/user/teacher_register/presentation/teacher_register.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -23,6 +23,25 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         title: const Text('Welcome Teacher'),
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12.0),
+          child: IconButton(
+            iconSize: 28,
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.grey.shade100,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (c) => TeacherRegister()),
+              );
+            },
+            icon: const Icon(Icons.person_rounded, color: Colors.blue),
+          ),
+        ),
         actions: [
           GestureDetector(
             onTap: () {

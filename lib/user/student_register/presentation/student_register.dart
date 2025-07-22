@@ -2,10 +2,11 @@ import 'package:attendence/Homepage/student_dashboard.dart';
 import 'package:attendence/core/widgets/lable_text.dart';
 import 'package:attendence/core/widgets/text_widget.dart';
 import 'package:attendence/subject/data/subject_model.dart';
-import 'package:attendence/user/register/data/register_datasource.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../data/register_datasource.dart';
 
 class RegisterStudent extends StatefulWidget {
   const RegisterStudent({super.key});
@@ -16,7 +17,7 @@ class RegisterStudent extends StatefulWidget {
 
 class _RegisterStudentState extends State<RegisterStudent> {
   final RegisterStudentService _studentService = RegisterStudentService();
-  final BorderRadius formRadius = BorderRadius.circular(12); // Slightly larger radius for softer look
+  final BorderRadius formRadius = BorderRadius.circular(12);
 
   final _formKey = GlobalKey<FormState>();
   List<String> _sections = [];
@@ -33,8 +34,8 @@ class _RegisterStudentState extends State<RegisterStudent> {
   String? _selectedCourse;
   String? _selectedSem;
 
-  bool _isLoading = true; // Added loading state
-  String? _errorMessage; // Added error message state
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -175,9 +176,6 @@ class _RegisterStudentState extends State<RegisterStudent> {
                         _selectedCourse,
                             (value) async {
                           if (value == null) return;
-                          setState(() {
-                            _isLoading = true; // Show loading when fetching next data
-                          });
                           try {
                             final sem = await _studentService.getSemesters(
                               courseId: value,
@@ -201,10 +199,6 @@ class _RegisterStudentState extends State<RegisterStudent> {
                               _sections = [];
                               _subjects = [];
                             });
-                          } finally {
-                            setState(() {
-                              _isLoading = false;
-                            });
                           }
                         },
                       ),
@@ -217,9 +211,6 @@ class _RegisterStudentState extends State<RegisterStudent> {
                         _selectedSem,
                             (value) async {
                           if (value == null || _selectedCourse == null) return;
-                          setState(() {
-                            _isLoading = true; // Show loading when fetching next data
-                          });
                           try {
                             final sections = await _studentService.getSections(
                               courseId: _selectedCourse!,
@@ -244,10 +235,6 @@ class _RegisterStudentState extends State<RegisterStudent> {
                               _sections = [];
                               _subjects = [];
                               _selectedSection = null;
-                            });
-                          } finally {
-                            setState(() {
-                              _isLoading = false;
                             });
                           }
                         },
@@ -317,14 +304,9 @@ class _RegisterStudentState extends State<RegisterStudent> {
                               valueFontSize: 16,
                             ),
                             const SizedBox(height: 4),
-                            LabeledText(
-                              label: 'Teacher: ',
-                              value: subject.subjectTeacher,
-                              labelWeight: FontWeight.w600,
-                              labelFontSize: 14,
-                              valueFontSize: 14,
-                              valueColor: Colors.grey[700],
-                            ),
+
+                           // TODO : add Assigned Teacher name for the selected subject according to section.
+
                             const SizedBox(height: 4),
                             LabeledText(
                               label: 'Code: ',
@@ -468,7 +450,7 @@ class _RegisterStudentState extends State<RegisterStudent> {
           ),
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Please enter your $label';
+              return 'Enter $label';
             }
             return null;
           },
@@ -555,7 +537,7 @@ class _RegisterStudentState extends State<RegisterStudent> {
             );
           }).toList(),
           onChanged: onChanged,
-          validator: (v) => v == null ? 'Please select a ${label.toLowerCase().replaceFirst('select ', '')}' : null,
+          validator: (v) => v == null ? 'Select a ${label.toLowerCase().replaceFirst('select ', '')}' : null,
           icon: const Icon(Icons.arrow_drop_down, color: Colors.black54), // Custom dropdown icon
         ),
       ],

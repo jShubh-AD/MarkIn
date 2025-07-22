@@ -3,18 +3,16 @@ import 'dart:convert';
 import 'package:attendence/Homepage/data/students_data/attendance_overview_model.dart';
 import 'package:attendence/settings/student_profile/data/student_profile_datasource.dart';
 import 'package:attendence/subject/data/subject_model.dart'; // Import SubjectModel
-import 'package:attendence/user/register/data/student_model.dart';
-import 'package:attendence/user/register/presentation/student_register.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../../core/widgets/lable_text.dart'; // Ensure LabeledText is available
 import '../../../core/widgets/text_widget.dart'; // Ensure TextWidget is available
 import '../settings/student_profile/presentation/student_profile.dart';
-import '../user/register/data/register_datasource.dart';
+import '../user/student_register/data/student_model.dart';
+import '../user/student_register/presentation/student_register.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -52,7 +50,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
       final roll = await _loadRollFromPref();
       if (roll == null || roll.isEmpty) {
         throw Exception(
-          "Roll number not found in preferences. Please register.",
+          "Roll number not found. Please register.",
         );
       }
 
@@ -78,9 +76,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
+          content: TextWidget(text:
             _dashboardErrorMessage ??
-                "An unknown error occurred loading dashboard",
+                "An unknown error occurred loading data contact support.",
           ),
         ),
       );
@@ -421,12 +419,13 @@ class _StudentDashboardState extends State<StudentDashboard> {
                                   ),
                                 ),
                                 subtitle: Text(
-                                  'Code: ${subject.subjectCode} | Teacher: ${subject.subjectTeacher}',
+                                  'Code: ${subject.subjectCode} | Section: ${studentData!.section}',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.grey[700],
                                   ),
                                 ),
+                                // todo : Add teacher name according to the section and subject
                                 childrenPadding: const EdgeInsets.all(24),
                                 // Increased padding for expanded content
                                 children: [

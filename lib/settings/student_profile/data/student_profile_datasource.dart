@@ -1,7 +1,8 @@
-import 'package:attendence/user/register/data/student_model.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../subject/data/subject_model.dart';
+import '../../../user/student_register/data/student_model.dart';
 
 class StudentProfileDatasource {
   final fbInstance = FirebaseFirestore.instance.collection('students');
