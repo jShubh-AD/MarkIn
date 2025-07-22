@@ -1,7 +1,10 @@
 import 'package:attendence/Homepage/student_dashboard.dart';
+import 'package:attendence/Homepage/teacher_dashboard.dart';
 import 'package:attendence/core/widgets/lable_text.dart';
 import 'package:attendence/core/widgets/text_widget.dart';
 import 'package:attendence/subject/data/subject_model.dart';
+import 'package:attendence/subject/subject_assignment/data/subject_assignment_model.dart';
+import 'package:attendence/user/student_register/data/student_attendance_model.dart';
 import 'package:attendence/user/teacher_register/data/teacher_register_datasource.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -25,11 +28,13 @@ class _TeacherRegisterState extends State<TeacherRegister> {
   List<String> _courses = [];
   List<String> _sem = [];
   List<SubjectModel> _subjects = [];
+  List<SubjectAssignment> _previewAssignedSujects = [];
 
   final TextEditingController _firstNameCtrl = TextEditingController();
   final TextEditingController _lastNameCtrl = TextEditingController();
   final TextEditingController _rollNoCtrl = TextEditingController();
   final TextEditingController _emailCtrl = TextEditingController();
+  final TextEditingController _subjectName = TextEditingController();
 
   String? _selectedSection;
   SubjectModel? _selectedSubjects;
@@ -123,11 +128,12 @@ class _TeacherRegisterState extends State<TeacherRegister> {
       if (!isAvailable) {
         // If it's NOT available (meaning it's assigned)
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'This subject is already assigned to another teacher for this section.',
+          SnackBar(
+            content: TextWidget(
+              color: Colors.white,
+              text: 'Subject $_selectedSubjectCode is already assigned to another teacher for Section: $_selectedSection.',
             ),
-            backgroundColor: Colors.orange,
+            backgroundColor: Colors.red,
           ),
         );
       } else {
@@ -360,12 +366,17 @@ class _TeacherRegisterState extends State<TeacherRegister> {
                                 _selectedSubjectCode,
                                 (value) => setState(() {
                                   _selectedSubjects = _subjects.firstWhere(
-                                        (sub) => sub.subjectCode == value,
+                                        (sub) {
+                                          return sub.subjectCode == value;
+                                        }
                                   );
                                   _selectedSubjectCode = value;
                                   _isSubjectAvailable = null;
+                                  _subjectName.text = _selectedSubjects!.subjectName;
                                 }),
                               ),
+                              const SizedBox(height: 24),
+                                _buildReadOnlyField('Subject name', _subjectName),
 
 ///   ----------------------------- Section selection -----------------------------
                               const SizedBox(height: 24),
@@ -430,15 +441,48 @@ class _TeacherRegisterState extends State<TeacherRegister> {
                                     onPressed: (_isSubjectAvailable ?? false)
                                         ? () async {
                                       if(_formKey.currentState?.validate() ?? false) {
-                                        _teacherService.assignSubjectToTeacher(
-                                          courseId: _selectedCourse!,
-                                          semesterId: _selectedSem!,
-                                          subjectId: _selectedSubjectCode!,
-                                          sectionId: _selectedSection!,
-                                          teacherId: _emailCtrl.text,
-                                          teacherFirstName: _firstNameCtrl.text,
-                                          teacherLastName: _lastNameCtrl.text,
-                                        );
+
+                                        try {
+                                          final assignmentId = '${_selectedCourse}_${_selectedSem}_${_selectedSubjectCode}_$_selectedSection';
+                                          final assignedSubject = SubjectAssignment(
+                                            subjectName: _subjectName.text,
+                                            courseId: _selectedCourse!,
+                                            semesterId: _selectedSem!,
+                                            subjectId: _selectedSubjectCode!,
+                                            sectionId: _selectedSection!,
+                                            teacherId: _emailCtrl.text,
+                                            teacherName: '${_firstNameCtrl.text} ${_lastNameCtrl.text}',
+                                            assignmentId: assignmentId,
+                                            isAssigned: true,
+                                            );
+
+                                          _teacherService.assignSubjectToTeacher(assignedSubject: assignedSubject);
+                                          setState(() {
+                                            _previewAssignedSujects.add(assignedSubject);
+                                          });
+
+                                          ScaffoldMessenger
+                                              .of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: TextWidget(
+                                                color: Colors.white,
+                                                  text: 'You are assigned for the Subject: $_selectedSubjectCode for Section: $_selectedSection.'),
+                                              backgroundColor: Colors.green,
+                                            ),
+                                          );
+                                        }catch(e){
+                                          ScaffoldMessenger
+                                              .of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: TextWidget(
+                                                color: Colors.white,
+                                                  text: 'Could not assign the Subject: $_selectedSubjectCode for $_selectedSection to you.\nContact support team.'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
                                       }
                                     }
                                     : null,
@@ -475,16 +519,16 @@ class _TeacherRegisterState extends State<TeacherRegister> {
                       ),
                       const SizedBox(height: 12),
                       // Spacing below title
-                      _subjects.isEmpty
+                      _previewAssignedSujects.isEmpty
                           ? Center(
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 20.0,
                                 ),
                                 child: Text(
-                                  _selectedSem == null
-                                      ? "Please select a course and semester to view subjects."
-                                      : "No subjects found for the selected semester.",
+                                  _selectedSection == null
+                                      ? "Please select a subject and section to view subjects."
+                                      : "No subjects found for the selected section.",
                                   style: TextStyle(
                                     fontSize: 16,
                                     color: Colors.grey[600],
@@ -496,17 +540,15 @@ class _TeacherRegisterState extends State<TeacherRegister> {
                           : ListView.builder(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
-                              itemCount: _subjects.length,
+                              itemCount: _previewAssignedSujects.length,
                               itemBuilder: (context, index) {
-                                final subject = _subjects[index];
+                                final _assignedSubjects = _previewAssignedSujects[index];
                                 return Card(
                                   elevation: 4,
                                   // More prominent elevation
-                                  color: Colors.white,
+                                  color: Colors.blueGrey.shade50.withOpacity(0.5),
                                   // Changed to white for consistency with overall app theme
-                                  shadowColor: Color(
-                                    0xFF1E88E5,
-                                  ).withOpacity(0.1),
+                                  shadowColor: Color(0xFF1E88E5).withOpacity(0.1),
                                   // Using _primaryBlue for shadow
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(
@@ -530,7 +572,7 @@ class _TeacherRegisterState extends State<TeacherRegister> {
                                       children: [
                                         LabeledText(
                                           label: 'Subject: ',
-                                          value: _selectedSubjects!.subjectName,
+                                          value: _assignedSubjects.subjectName,
                                           // Assuming _selectedSubjects is the SubjectModel
                                           labelWeight: FontWeight.w700,
                                           // Bolder label
@@ -540,12 +582,62 @@ class _TeacherRegisterState extends State<TeacherRegister> {
                                         ),
                                         const SizedBox(height: 4),
                                         LabeledText(
-                                          label: 'Code: ',
-                                          value: _selectedSubjects!.subjectCode,
+                                          label: 'Subject Code: ',
+                                          value: _assignedSubjects.subjectId,
+                                          // Assuming _selectedSubjects is the SubjectModel
+                                          labelWeight: FontWeight.w700,
+                                          // Bolder label
+                                          valueColor: Colors.black87,
+                                          labelFontSize: 16,
+                                          valueFontSize: 16,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        LabeledText(
+                                          label: 'Teacher:  ',
+                                          value:_assignedSubjects.teacherName,
                                           labelWeight: FontWeight.w600,
                                           labelFontSize: 14,
                                           valueFontSize: 14,
                                           valueColor: Colors.grey[700],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Wrap(
+                                          runSpacing: 4,
+                                          spacing: 4,
+                                          children: [
+                                            Expanded(
+                                              child: LabeledText(
+                                                label: 'Course:  ',
+                                                value:_assignedSubjects.courseId,
+                                                labelWeight: FontWeight.w600,
+                                                labelFontSize: 14,
+                                                valueFontSize: 14,
+                                                valueColor: Colors.grey[700],
+                                              ),
+                                            ),
+                                            const Text(' | ', style: TextStyle(fontWeight: FontWeight.bold)),
+                                            Expanded(
+                                              child: LabeledText(
+                                                label: 'Sem:  ',
+                                                value:_assignedSubjects.semesterId,
+                                                labelWeight: FontWeight.w600,
+                                                labelFontSize: 14,
+                                                valueFontSize: 14,
+                                                valueColor: Colors.grey[700],
+                                              ),
+                                            ),
+                                            const Text(' | ', style: TextStyle(fontWeight: FontWeight.bold)),
+                                            Expanded(
+                                              child: LabeledText(
+                                                label: 'Sec:  ',
+                                                value:_assignedSubjects.sectionId,
+                                                labelWeight: FontWeight.w600,
+                                                labelFontSize: 14,
+                                                valueFontSize: 14,
+                                                valueColor: Colors.grey[700],
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                         const SizedBox(height: 4),
 
@@ -573,43 +665,32 @@ class _TeacherRegisterState extends State<TeacherRegister> {
                           ),
                           onPressed: () async {
                             if (_formKey.currentState?.validate() ?? false) {
-                              if (_selectedCourse == null ||
-                                  _selectedSem == null ||
-                                  _selectedSection == null) {
+                              if (_selectedCourse == null || _selectedSem == null || _selectedSection == null) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text(
-                                      'Please select Course, Semester, and Section.',
-                                    ),
+                                    content: TextWidget(text: 'Please select Course, Semester, and Section.'),
                                     backgroundColor: Colors.orange,
                                   ),
                                 );
                                 return;
                               }
 
-                              setState(() {
-                                _isLoading =
-                                    true; // Show loading indicator during registration
-                              });
+                              setState(() {_isLoading = true; });
 
                               try {
-                                final registered = await _studentService
-                                    .registerStudents(
-                                      sem: _selectedSem!,
+                                final registered = await _teacherService
+                                    .registerTeacher(
                                       email: _emailCtrl.text,
                                       firstName: _firstNameCtrl.text,
                                       lastName: _lastNameCtrl.text,
-                                      roll: _rollNoCtrl.text,
-                                      course: _selectedCourse!,
-                                      section: _selectedSection!,
-                                      subjects: _subjects,
+                                      assignedSubjects: _previewAssignedSujects
                                     );
 
                                 if (registered) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text(
-                                        'Student registered successfully!',
+                                      content: TextWidget(
+                                        text: 'You are now registered as a teacher successfully!',
                                       ),
                                       backgroundColor: Colors.green,
                                     ),
@@ -617,14 +698,14 @@ class _TeacherRegisterState extends State<TeacherRegister> {
                                   Navigator.pushReplacement(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) => const StudentDashboard(),
+                                      builder: (_) => const TeacherDashboard(),
                                     ),
                                   );
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text(
-                                        'Registration failed: Roll number may already be registered or an internal error occurred.',
+                                      content: TextWidget(text:
+                                        'Registration failed: Teacher Id may already be registered or an internal error occurred.',
                                       ),
                                       backgroundColor: Colors.red,
                                     ),
@@ -633,8 +714,8 @@ class _TeacherRegisterState extends State<TeacherRegister> {
                               } catch (e) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(
-                                      'An error occurred during registration: ${e.toString()}',
+                                    content: TextWidget(
+                                      text: 'An error occurred during registration: ${e.toString()}',
                                     ),
                                     backgroundColor: Colors.red,
                                   ),
@@ -820,7 +901,7 @@ class _TeacherRegisterState extends State<TeacherRegister> {
           }).toList(),
           onChanged: onChanged,
           validator: (v) => v == null
-              ? 'Please select a ${label.toLowerCase().replaceFirst('select ', '')}'
+              ? 'Select a ${label.toLowerCase().replaceFirst('select ', '')}'
               : null,
           icon: const Icon(
             Icons.arrow_drop_down,

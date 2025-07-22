@@ -4,6 +4,7 @@ class SubjectAssignment {
   final String assignmentId; // e.g., "BCA_3_BCA301_A"
   final String courseId;
   final String semesterId;
+  final String subjectName;
   final String sectionId;
   final String subjectId;
   final String teacherName;
@@ -13,6 +14,7 @@ class SubjectAssignment {
   SubjectAssignment({
     required this.assignmentId,
     required this. teacherName,
+    required this.subjectName,
     required this.courseId,
     required this.semesterId,
     required this.sectionId,
@@ -27,6 +29,7 @@ class SubjectAssignment {
       assignmentId: doc.id,
       teacherName: data['teacherName'],
       courseId: data['courseId'],
+      subjectName: data['subjectName'],
       semesterId: data['semesterId'],
       sectionId: data['sectionId'],
       subjectId: data['subjectId'],
@@ -40,6 +43,7 @@ class SubjectAssignment {
       'teacherName': teacherName,
       'courseId': courseId,
       'semesterId': semesterId,
+      'subjectName': subjectName,
       'sectionId': sectionId,
       'subjectId': subjectId,
       'teacherId': teacherId,

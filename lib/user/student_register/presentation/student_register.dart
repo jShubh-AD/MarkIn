@@ -322,7 +322,7 @@ class _RegisterStudentState extends State<RegisterStudent> {
                     );
                   },
                 ),
-                const SizedBox(height: 30), // Increased spacing before button
+                const SizedBox(height: 30),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -363,7 +363,7 @@ class _RegisterStudentState extends State<RegisterStudent> {
                           if (registered) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Student registered successfully!'),
+                                content: Text('You are now registered as a student successfully!'),
                                 backgroundColor: Colors.green,
                               ),
                             );

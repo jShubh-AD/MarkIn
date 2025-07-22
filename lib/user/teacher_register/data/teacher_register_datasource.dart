@@ -1,3 +1,4 @@
+import 'package:attendence/user/teacher_register/data/teacher_register_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../subject/subject_assignment/data/subject_assignment_model.dart';
@@ -7,19 +8,41 @@ class RegisterTeacherDatasource {
   final _courseInstance = FirebaseFirestore.instance.collection('courses');
 
 
-  Future<bool> RegisterTeacher ({
+  Future<bool> registerTeacher ({
     required String email,
     required String firstName,
     required String lastName,
+    required List<SubjectAssignment> assignedSubjects
   })
   async{
 
-    final docRef = await _fsInstance.collection('teacher').doc(email).get();
+    final docRef = _fsInstance.collection('teacher').doc(email);
+    final WriteBatch batch = _fsInstance.batch();
 
-    if(!docRef.exists) return false;
+    final assignedSubject = assignedSubjects.map((sub) {
+      return AssignedSubject(
+        assignmentId: sub.assignmentId,
+        courseId: sub.courseId,
+        semesterId: sub.semesterId,
+        sectionId: sub.sectionId,
+        subjectId: sub.subjectId,
+        subjectName: sub.subjectName,
+      );
+    }).toList();
 
-    try{}catch(e){}
-    return true;
+    final TeacherRegisterModel data = TeacherRegisterModel(
+        teacherId: email,
+        firstName: firstName,
+        lastName: lastName,
+        assignedSubjects: assignedSubject
+    );
+
+    try{
+      docRef.set(data.toMap(), SetOptions(merge: true) );
+      return true;
+    }catch(e){
+      return false;
+    }
   }
 
 
@@ -57,20 +80,10 @@ class RegisterTeacherDatasource {
 
 
   Future<bool> assignSubjectToTeacher({
-    required String courseId,
-    required String semesterId,
-    required String subjectId,
-    required String sectionId,
-    required String teacherFirstName,
-    required String teacherId,
-    required String teacherLastName,
+   required SubjectAssignment assignedSubject
   }) async {
 
-    final assignmentId = '${courseId}_${semesterId}_${subjectId}_$sectionId';
-    final docRef = _fsInstance.collection('subject_assignments').doc(assignmentId);
-
-    final batch = _fsInstance.batch();
-
+    final docRef = _fsInstance.collection('subject_assignments').doc(assignedSubject.assignmentId);
     final docSnap = await docRef.get();
 
     if (docSnap.exists) {
@@ -81,21 +94,22 @@ class RegisterTeacherDatasource {
 
       // Only update teacher fields
       await docRef.set({
-        'teacherId': teacherId,
-       'teacherName': teacherFirstName + teacherLastName,
+        'teacherId': assignedSubject.teacherId,
+       'teacherName': assignedSubject.teacherName,
         'isAssigned': true,
       }, SetOptions(merge: true));
 
     } else {
       final assignment = SubjectAssignment(
-        teacherName: teacherFirstName + teacherLastName,
-        assignmentId: assignmentId,
-        courseId: courseId,
-        semesterId: semesterId,
-        sectionId: sectionId,
-        subjectId: subjectId,
-        teacherId: teacherId,
-        isAssigned: true,
+        subjectName: assignedSubject.subjectName,
+        teacherName: assignedSubject.teacherName,
+        assignmentId: assignedSubject.assignmentId,
+        courseId: assignedSubject.courseId,
+        semesterId: assignedSubject.semesterId,
+        sectionId: assignedSubject.sectionId,
+        subjectId: assignedSubject.subjectId,
+        teacherId: assignedSubject.teacherId,
+        isAssigned: assignedSubject.isAssigned,
       );
 
       await docRef.set({
