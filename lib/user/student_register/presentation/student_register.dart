@@ -1,4 +1,3 @@
-import 'package:attendence/Homepage/student_dashboard.dart';
 import 'package:attendence/core/widgets/lable_text.dart';
 import 'package:attendence/core/widgets/text_widget.dart';
 import 'package:attendence/subject/data/subject_model.dart';
@@ -6,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../student_homepage/presentation/student_dashboard.dart';
 import '../data/register_datasource.dart';
 
 class RegisterStudent extends StatefulWidget {
@@ -104,7 +104,7 @@ class _RegisterStudentState extends State<RegisterStudent> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         surfaceTintColor: Colors.transparent,
         backgroundColor: Colors.white,

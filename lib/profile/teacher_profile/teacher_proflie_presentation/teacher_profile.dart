@@ -1,15 +1,17 @@
 import 'package:attendence/core/widgets/text_widget.dart';
+import 'package:attendence/settings/update_teacher_profile/persentation/update_teacher.dart';
 import 'package:attendence/user/teacher_register/data/teacher_register_model.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/auth/aurth_service.dart';
 import '../../../core/widgets/lable_text.dart';
+import '../../../settings/change_password/presentation/change_password.dart';
 import '../../../user/signin/presentaton/signin_page.dart';
-import '../../change_password/presentation/change_password.dart';
 
 class TeacherProfile extends StatefulWidget {
   final TeacherRegisterModel teacherData;
+
   const TeacherProfile({super.key, required this.teacherData});
 
   @override
@@ -53,11 +55,7 @@ class _TeacherProfileState extends State<TeacherProfile> {
                   color: errorColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
-                  Icons.logout,
-                  color: errorColor,
-                  size: 24,
-                ),
+                child: const Icon(Icons.logout, color: errorColor, size: 24),
               ),
               const SizedBox(width: 12),
               const TextWidget(
@@ -69,7 +67,8 @@ class _TeacherProfileState extends State<TeacherProfile> {
             ],
           ),
           content: const TextWidget(
-            text: "Are you sure you want to log out? You'll need to sign in again to access your account.",
+            text:
+                "Are you sure you want to log out? You'll need to sign in again to access your account.",
             fontSize: 16,
             color: Colors.black54,
           ),
@@ -77,7 +76,10 @@ class _TeacherProfileState extends State<TeacherProfile> {
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -93,7 +95,10 @@ class _TeacherProfileState extends State<TeacherProfile> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: errorColor,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -120,7 +125,7 @@ class _TeacherProfileState extends State<TeacherProfile> {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => SignInPage()),
-                (Route<dynamic> route) => false,
+            (Route<dynamic> route) => false,
           );
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -191,10 +196,7 @@ class _TeacherProfileState extends State<TeacherProfile> {
         iconTheme: const IconThemeData(color: Colors.black87),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: Colors.grey.shade200,
-          ),
+          child: Container(height: 1, color: Colors.grey.shade200),
         ),
       ),
       body: SingleChildScrollView(
@@ -248,14 +250,18 @@ class _TeacherProfileState extends State<TeacherProfile> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             TextWidget(
-                              text: '${widget.teacherData.firstName} ${widget.teacherData.lastName}',
+                              text:
+                                  '${widget.teacherData.firstName} ${widget.teacherData.lastName}',
                               fontSize: 20,
                               fontWeight: FontWeight.w600,
                               color: Colors.black87,
                             ),
                             const SizedBox(height: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: primaryColor.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(20),
@@ -287,11 +293,7 @@ class _TeacherProfileState extends State<TeacherProfile> {
                       color: accentColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(
-                      Icons.subject,
-                      color: accentColor,
-                      size: 20,
-                    ),
+                    child: Icon(Icons.subject, color: accentColor, size: 20),
                   ),
                   const SizedBox(width: 12),
                   const TextWidget(
@@ -299,22 +301,6 @@ class _TeacherProfileState extends State<TeacherProfile> {
                     fontSize: 18,
                     color: Colors.black87,
                     fontWeight: FontWeight.w600,
-                  ),
-                  Spacer(),
-                  InkWell(
-                    onTap: (){},
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black87,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        Icons.edit_document,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -335,89 +321,114 @@ class _TeacherProfileState extends State<TeacherProfile> {
                 ),
                 child: widget.teacherData.assignedSubjects.isEmpty
                     ? Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.assignment_outlined,
-                          size: 48,
-                          color: Colors.grey.shade400,
+                        padding: const EdgeInsets.all(32),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.assignment_outlined,
+                                size: 48,
+                                color: Colors.grey.shade400,
+                              ),
+                              const SizedBox(height: 12),
+                              TextWidget(
+                                text: 'No subjects assigned yet',
+                                color: Colors.grey.shade600,
+                                fontSize: 16,
+                              ),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 12),
-                        TextWidget(
-                          text: 'No subjects assigned yet',
-                          color: Colors.grey.shade600,
-                          fontSize: 16,
-                        ),
-                      ],
-                    ),
-                  ),
-                )
+                      )
                     : ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
-                  itemCount: widget.teacherData.assignedSubjects.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final subjectEntry = widget.teacherData.assignedSubjects.entries.elementAt(index);
-                    final subjectId = subjectEntry.key;
-                    final subject = subjectEntry.value;
-
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: backgroundColor,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.grey.shade200,
-                          width: 1,
-                        ),
-                      ),
-                      child: Padding(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
                         padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            LabeledText(
-                              label: 'Subject: ',
-                              value: subject.subjectName,
-                              labelWeight: FontWeight.w600,
-                              valueColor: Colors.black87,
-                              labelFontSize: 16,
-                              valueFontSize: 15,
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: LabeledText(
-                                    label: 'Section: ',
-                                    value: subject.sectionId,
-                                    labelWeight: FontWeight.w500,
-                                    labelFontSize: 15,
-                                    valueFontSize: 15,
-                                    valueColor: Colors.grey[700],
+                        itemCount: widget.teacherData.assignedSubjects.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final subjectEntry = widget
+                              .teacherData
+                              .assignedSubjects
+                              .entries
+                              .elementAt(index);
+                          final subjectId = subjectEntry.key;
+                          final subject = subjectEntry.value;
+
+                          return InkWell(
+                            onTap: () {
+                              print(subjectId);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => UpdateTeacher(
+                                    email: widget.teacherData.teacherId,
+                                    course: subject.courseId,
+                                    semester: subject.semesterId,
+                                    subjectName: subject.subjectName,
+                                    subjectCode: subject.subjectId,
+                                    section: subject.sectionId,
+                                    sheetUrl: subject.sheetUrl ?? '',
+                                    docId: subjectId,
                                   ),
                                 ),
-                                Expanded(
-                                  child: LabeledText(
-                                    label: 'Code: ',
-                                    value: subject.subjectId,
-                                    labelWeight: FontWeight.w500,
-                                    labelFontSize: 15,
-                                    valueFontSize: 15,
-                                    valueColor: Colors.grey[700],
-                                  ),
+                              );
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: backgroundColor,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.grey.shade200,
+                                  width: 1,
                                 ),
-                              ],
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    LabeledText(
+                                      label: 'Subject: ',
+                                      value: subject.subjectName,
+                                      labelWeight: FontWeight.w600,
+                                      valueColor: Colors.black87,
+                                      labelFontSize: 16,
+                                      valueFontSize: 15,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: LabeledText(
+                                            label: 'Section: ',
+                                            value: subject.sectionId,
+                                            labelWeight: FontWeight.w500,
+                                            labelFontSize: 15,
+                                            valueFontSize: 15,
+                                            valueColor: Colors.grey[700],
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: LabeledText(
+                                            label: 'Code: ',
+                                            value: subject.subjectId,
+                                            labelWeight: FontWeight.w500,
+                                            labelFontSize: 15,
+                                            valueFontSize: 15,
+                                            valueColor: Colors.grey[700],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
               ),
 
               const SizedBox(height: 28),
@@ -496,40 +507,40 @@ class _TeacherProfileState extends State<TeacherProfile> {
                   onPressed: _isLoggingOut ? null : _handleLogout,
                   child: _isLoggingOut
                       ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white.withOpacity(0.8),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const TextWidget(
-                        text: 'Logging Out...',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                        color: Colors.white,
-                      ),
-                    ],
-                  )
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white.withOpacity(0.8),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const TextWidget(
+                              text: 'Logging Out...',
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                              color: Colors.white,
+                            ),
+                          ],
+                        )
                       : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.logout, color: Colors.white, size: 20),
-                      SizedBox(width: 8),
-                      TextWidget(
-                        text: 'Log Out',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                        color: Colors.white,
-                      ),
-                    ],
-                  ),
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.logout, color: Colors.white, size: 20),
+                            SizedBox(width: 8),
+                            TextWidget(
+                              text: 'Log Out',
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                              color: Colors.white,
+                            ),
+                          ],
+                        ),
                 ),
               ),
 

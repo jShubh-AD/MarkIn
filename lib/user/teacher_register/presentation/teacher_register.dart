@@ -1,14 +1,12 @@
-import 'package:attendence/Homepage/student_dashboard.dart';
-import 'package:attendence/Homepage/teacher_dashboard.dart';
 import 'package:attendence/core/widgets/lable_text.dart';
 import 'package:attendence/core/widgets/text_widget.dart';
 import 'package:attendence/subject/data/subject_model.dart';
 import 'package:attendence/subject/subject_assignment/data/subject_assignment_model.dart';
-import 'package:attendence/user/student_register/data/student_attendance_model.dart';
 import 'package:attendence/user/teacher_register/data/teacher_register_datasource.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../teacher_homepage/presentation/teacher_dashboard.dart';
 import '../../student_register/data/register_datasource.dart';
 
 class TeacherRegister extends StatefulWidget {
@@ -51,7 +49,6 @@ class _TeacherRegisterState extends State<TeacherRegister> {
     super.initState();
     // Ensure currentUser is not null before accessing its email
     _emailCtrl.text = FirebaseAuth.instance.currentUser?.email ?? '';
-    //_isLoading = false;
     _initializeProfileSetup();
   }
 
@@ -162,7 +159,7 @@ class _TeacherRegisterState extends State<TeacherRegister> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         surfaceTintColor: Colors.transparent,
         backgroundColor: Colors.white,
@@ -255,8 +252,8 @@ class _TeacherRegisterState extends State<TeacherRegister> {
                             children: [
                               TextWidget(
                                 text: 'Add Subjects',
-                                fontSize: 18, // Slightly larger font size
-                                fontWeight: FontWeight.w700, // Bolder
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
                                 color: Colors.black87,
                               ),
                               const SizedBox(height: 12),
@@ -379,6 +376,7 @@ class _TeacherRegisterState extends State<TeacherRegister> {
                                 _buildReadOnlyField('Subject name', _subjectName),
 
 ///   ----------------------------- Section selection -----------------------------
+
                               const SizedBox(height: 24),
                               _buildDropdown(
                                 'Select Section',
@@ -403,7 +401,8 @@ class _TeacherRegisterState extends State<TeacherRegister> {
                               ),
                               const SizedBox(height: 24),
 
-                              /// -------------------------- SUBJECT AVAILABLE OR NOT  TEXT ---------------------------
+/// -------------------------- SUBJECT AVAILABLE OR NOT  TEXT ---------------------------
+
                               if (_isSubjectAvailable == false &&
                                   _isSubjectAvailable != null)
                                 TextWidget(
@@ -414,7 +413,8 @@ class _TeacherRegisterState extends State<TeacherRegister> {
                                 ),
                               const SizedBox(height: 12),
 
-                              /// -------------------------- Assign Me BUTTON ---------------------------
+/// -------------------------- Assign Me BUTTON ---------------------------
+
                               // Check for _isSubjectAvailable != null to ensure a check has happened
                               if (_isSubjectAvailable != null &&
                                   _selectedSection != null &&
@@ -434,9 +434,9 @@ class _TeacherRegisterState extends State<TeacherRegister> {
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(
                                           12,
-                                        ), // Using formRadius value for consistency
+                                        ),
                                       ),
-                                      elevation: 8, // More prominent shadow
+                                      elevation: 8,
                                     ),
                                     onPressed: (_isSubjectAvailable ?? false)
                                         ? () async {
@@ -452,7 +452,7 @@ class _TeacherRegisterState extends State<TeacherRegister> {
                                             sectionId: _selectedSection!,
                                             teacherId: _emailCtrl.text,
                                             teacherName: '${_firstNameCtrl.text} ${_lastNameCtrl.text}',
-                                            assignmentId: assignmentId,
+                                            assignmentId: assignmentId.trim(),
                                             isAssigned: true,
                                             );
 
@@ -633,11 +633,32 @@ class _TeacherRegisterState extends State<TeacherRegister> {
                                         top: -10,
                                         right: -10,
                                         child: IconButton(
-                                          onPressed: () {
-                                            setState(() {
-                                              _teacherService.removeAssignedSubject(docId: _assignedSubjects.assignmentId);
-                                              _previewAssignedSujects.removeAt(index);
-                                            });
+                                          onPressed: () async {
+                                            final shouldDelete = await showDialog<bool>(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                backgroundColor: Colors.blueGrey.shade100,
+                                                title: const TextWidget(text: "Remove Subject", fontWeight: FontWeight.bold,fontSize: 20,),
+                                                content: TextWidget(text: "Are you sure you want to remove subject ${_assignedSubjects.subjectId} from your schedule?"),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () => Navigator.of(context).pop(false),
+                                                    child: const TextWidget(text: "Cancel", fontWeight: FontWeight.w500,),
+                                                  ),
+                                                  TextButton(
+                                                    onPressed: () => Navigator.of(context).pop(true),
+                                                    child: const TextWidget(text: "Confirm", color: Colors.red,  fontWeight: FontWeight.w500,),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+
+                                            if (shouldDelete == true) {
+                                              setState(() {
+                                                _teacherService.removeAssignedSubject(docId: _assignedSubjects.assignmentId);
+                                                _previewAssignedSujects.removeAt(index);
+                                              });
+                                            }
                                           },
                                           icon: const Icon(
                                             Icons.cancel,
@@ -689,7 +710,7 @@ class _TeacherRegisterState extends State<TeacherRegister> {
                                       email: _emailCtrl.text,
                                       firstName: _firstNameCtrl.text,
                                       lastName: _lastNameCtrl.text,
-                                      assignedSubjects: _previewAssignedSujects
+                                      assignedSubjects: _previewAssignedSujects,
                                     );
 
                                 if (registered) {

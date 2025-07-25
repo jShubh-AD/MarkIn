@@ -1,9 +1,8 @@
-
 class TeacherRegisterModel {
   final String teacherId;
   final String firstName;
   final String lastName;
-  final List<AssignedSubject> assignedSubjects;
+  final Map<String, AssignedSubject> assignedSubjects;
 
   TeacherRegisterModel({
     required this.teacherId,
@@ -12,27 +11,29 @@ class TeacherRegisterModel {
     required this.assignedSubjects,
   });
 
-  // From Firestore/JSON
-  factory TeacherRegisterModel.fromMap(Map<String, dynamic> map) {
-    return TeacherRegisterModel(
-      teacherId: map['teacherId'] ?? '',
-      firstName: map['firstName'] ?? '',
-      lastName: map['lastName'] ?? '',
-      assignedSubjects: (map['assignedSubjects'] as List<dynamic>?)
-          ?.map((e) => AssignedSubject.fromMap(e as Map<String, dynamic>))
-          .toList() ??
-          [],
-    );
-  }
-
-  // To Firestore/JSON
   Map<String, dynamic> toMap() {
     return {
       'teacherId': teacherId,
       'firstName': firstName,
       'lastName': lastName,
-      'assignedSubjects': assignedSubjects.map((e) => e.toMap()).toList(),
+    'assignedSubjects': {for (var sub in assignedSubjects.entries) sub.key: sub.value.toMap(),}
+      ,
     };
+  }
+
+  factory TeacherRegisterModel.fromMap(Map<String, dynamic> map) {
+
+    final assignedSubjectsMap = Map<String, dynamic>.from(map['assignedSubjects'] ?? {});
+
+    return TeacherRegisterModel(
+      teacherId: map['teacherId'] ?? '',
+      firstName: map['firstName'] ?? '',
+      lastName: map['lastName'] ?? '',
+      assignedSubjects: {
+        for (var entry in assignedSubjectsMap.entries)
+          entry.key: AssignedSubject.fromMap(Map<String, dynamic>.from(entry.value)),
+      },
+    );
   }
 }
 
@@ -47,6 +48,7 @@ class AssignedSubject {
   final String sectionId;
   final String subjectId;
   final String subjectName;
+  final String? sheetUrl;
 
   AssignedSubject({
     required this.assignmentId,
@@ -55,11 +57,13 @@ class AssignedSubject {
     required this.sectionId,
     required this.subjectId,
     required this.subjectName,
+    required this.sheetUrl
   });
 
   // From Firestore/JSON
   factory AssignedSubject.fromMap(Map<String, dynamic> map) {
     return AssignedSubject(
+      sheetUrl: map['sheetUrl'] ?? '',
       assignmentId: map['assignmentId'] ?? '',
       courseId: map['courseId'] ?? '',
       semesterId: map['semesterId'] ?? '',
@@ -72,6 +76,7 @@ class AssignedSubject {
   // To Firestore/JSON
   Map<String, dynamic> toMap() {
     return {
+      'sheetUrl': sheetUrl,
       'assignmentId': assignmentId,
       'courseId': courseId,
       'semesterId': semesterId,

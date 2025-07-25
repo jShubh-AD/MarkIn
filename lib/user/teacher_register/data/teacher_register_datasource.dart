@@ -8,42 +8,99 @@ class RegisterTeacherDatasource {
   final _courseInstance = FirebaseFirestore.instance.collection('courses');
 
 
-  Future<bool> registerTeacher ({
+  /// -------------------- Register Teacher Method -----------------------------
+
+
+  Future<bool> registerTeacher({
     required String email,
     required String firstName,
     required String lastName,
-    required List<SubjectAssignment> assignedSubjects
-  })
-  async{
+    required List<SubjectAssignment> assignedSubjects,
+    String? sheetUrl,
+  }) async {
+    final docRef = _fsInstance.collection('teachers').doc(email);
 
-    final docRef = _fsInstance.collection('teacher').doc(email);
-    final WriteBatch batch = _fsInstance.batch();
+    try {
+      final docSnapshot = await docRef.get();
 
-    final assignedSubject = assignedSubjects.map((sub) {
-      return AssignedSubject(
-        assignmentId: sub.assignmentId,
-        courseId: sub.courseId,
-        semesterId: sub.semesterId,
-        sectionId: sub.sectionId,
-        subjectId: sub.subjectId,
-        subjectName: sub.subjectName,
-      );
-    }).toList();
+      // Get existing assignedSubjects if available
+      Map<String, dynamic> existingSubjects = {};
 
-    final TeacherRegisterModel data = TeacherRegisterModel(
+      if (!docSnapshot.exists) {
+        throw Exception('No Teacher Found.');
+      }
+
+      if (docSnapshot.exists) {
+        final existingData = docSnapshot.data() as Map<String, dynamic>;
+        final model = TeacherRegisterModel.fromMap(existingData);
+        existingSubjects = model.assignedSubjects;
+      }
+
+
+      // Prepare map of new assignments, only add if not already present
+
+      final Map<String, AssignedSubject> newSubjectsMap = {};
+
+      for (var sub in assignedSubjects) {
+        newSubjectsMap[sub.assignmentId.trim()] = AssignedSubject(
+          sheetUrl: sheetUrl ?? '',
+          assignmentId: sub.assignmentId.trim(),
+          courseId: sub.courseId,
+          semesterId: sub.semesterId,
+          sectionId: sub.sectionId,
+          subjectId: sub.subjectId,
+          subjectName: sub.subjectName,
+        );
+      }
+
+      final Map<String, AssignedSubject> finalSubjects = {};
+
+      for (var entry in existingSubjects.entries) {
+        finalSubjects[entry.key] = entry.value;
+      }
+      for (var entry in newSubjectsMap.entries) {
+        finalSubjects[entry.key] = entry.value;
+      }
+
+      // Prepare update payload
+      final updatedData = TeacherRegisterModel(
         teacherId: email,
         firstName: firstName,
         lastName: lastName,
-        assignedSubjects: assignedSubject
-    );
+        assignedSubjects: finalSubjects,
+      );
 
-    try{
-      docRef.set(data.toMap(), SetOptions(merge: true) );
+      await docRef.set(updatedData.toMap() , SetOptions(merge: true)); // 📝 1 WRITE
       return true;
-    }catch(e){
+    } catch (e) {
+      print('Register error: $e');
       return false;
     }
   }
+
+
+  /// ---------------- Update Assigned Subject To the teacher ------------------
+
+  Future<void> updateAssignedSubject(
+      {
+    required String email,
+    required String assignedSubjectId,
+    required String sheetUrl,
+      }) async{
+
+    final docRef = _fsInstance.collection('teachers').doc(email);
+
+    final docSnapshot = await docRef.get();
+    if (!docSnapshot.exists) {
+      throw Exception('No Teacher Found.');
+    }
+
+    // Firestore allows dot notation to update nested map fields
+   await docRef.update({
+      'assignedSubjects.$assignedSubjectId.sheetUrl': sheetUrl,
+    });
+  }
+
 
 
   /// GET COURSES FROM Firestore
@@ -60,7 +117,7 @@ class RegisterTeacherDatasource {
     required String sectionId,
   }) async {
     final assignmentId = '${courseId}_${semesterId}_${subjectId}_$sectionId';
-    final docRef = _fsInstance.collection('subject_assignments').doc(assignmentId);
+    final docRef = _fsInstance.collection('subject_assignments').doc(assignmentId.trim());
 
     try {
       final docSnap = await docRef.get();
@@ -83,7 +140,7 @@ class RegisterTeacherDatasource {
    required SubjectAssignment assignedSubject
   }) async {
 
-    final docRef = _fsInstance.collection('subject_assignments').doc(assignedSubject.assignmentId);
+    final docRef = _fsInstance.collection('subject_assignments').doc(assignedSubject.assignmentId.trim());
     final docSnap = await docRef.get();
 
     if (docSnap.exists) {
@@ -103,7 +160,7 @@ class RegisterTeacherDatasource {
       final assignment = SubjectAssignment(
         subjectName: assignedSubject.subjectName,
         teacherName: assignedSubject.teacherName,
-        assignmentId: assignedSubject.assignmentId,
+        assignmentId: assignedSubject.assignmentId.trim(),
         courseId: assignedSubject.courseId,
         semesterId: assignedSubject.semesterId,
         sectionId: assignedSubject.sectionId,
@@ -121,7 +178,7 @@ class RegisterTeacherDatasource {
   }
 
   Future<void> removeAssignedSubject ({required String? docId}) async{
-    final docRef = _fsInstance.collection('subject_assignments').doc(docId);
+    final docRef = _fsInstance.collection('subject_assignments').doc(docId!.trim());
 
     final removed = await docRef.delete();
 

@@ -1,11 +1,10 @@
-import 'package:attendence/user/signin/signin_page.dart';
+import 'package:attendence/student_homepage/presentation/student_dashboard.dart';
+import 'package:attendence/teacher_homepage/presentation/teacher_dashboard.dart';
+import 'package:attendence/user/signin/presentaton/signin_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import 'Homepage/student_dashboard.dart';
-import 'Homepage/teacher_dashboard.dart';
 import 'firebase_options.dart';
 
 void main() async {
