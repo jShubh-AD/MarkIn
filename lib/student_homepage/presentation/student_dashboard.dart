@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/widgets/text_widget.dart';
@@ -98,26 +101,37 @@ class _StudentDashboardState extends State<StudentDashboard> {
   }
 
   Future<bool> markAttendance({
+    required String sessionId,
     required String rollNumber,
     required String subjectCode,
-    required String sectionId,
-    required String sessionId,
+    required String sheetURl,
     required String submittedCode,
   }) async {
     final FirebaseFirestore firestore = FirebaseFirestore.instance;
     try {
-      final sessionRef = firestore
-          .collection('courses')
-          .doc(studentData!.course)
-          .collection('semesters')
-          .doc(studentData!.sem)
-          .collection('sections')
-          .doc(studentData!.section)
-          .collection('attendance_sessions')
-          .doc(sessionId);
-      await sessionRef.update({
-        'students': FieldValue.arrayUnion([rollNumber]),
-      });
+      // Prepare today's date in "dd-MMM-yyyy" format (like "25-Jul-2025")
+      final now = DateTime.now();
+      final formattedDate = "${now.day}-${now.month}-${now.year}";
+
+      // Prepare payload for Google Apps Script
+      final payload = {
+        'rollNumber': rollNumber,
+        'date': formattedDate,
+        'value': 1,
+      };
+
+      // Send POST request to Google Apps Script URL
+      final response = await http.post(
+        Uri.parse(sheetURl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      );
+
+      print("Google Sheets Response: ${response.body}");
+
+
+      print(response.body);
+
       final studentRef = firestore
           .collection('students')
           .doc(rollNumber)
@@ -518,15 +532,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
       itemCount: _studentSubjects.length,
       itemBuilder: (context, index) {
         final subject = _studentSubjects[index];
+        final docId =
+            '${studentData!.course}_${studentData!.sem}_${subject.subjectCode.trim()}_${studentData!.section}';
+        print(docId);
         final attendanceOverviewDocRef = FirebaseFirestore.instance
-            .collection('courses')
-            .doc(studentData!.course)
-            .collection('semesters')
-            .doc(studentData!.sem)
-            .collection('sections')
-            .doc(studentData!.section)
-            .collection('attendance_sessions')
-            .doc(subject.subjectCode);
+            .collection('attendance')
+            .doc(docId);
 
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
@@ -544,6 +555,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
           child: Theme(
             data: Theme.of(context).copyWith(
               dividerColor: Colors.transparent,
+              splashColor: Colors.transparent,
               expansionTileTheme: const ExpansionTileThemeData(
                 backgroundColor: Colors.transparent,
                 collapsedBackgroundColor: Colors.transparent,
@@ -694,18 +706,15 @@ class _StudentDashboardState extends State<StudentDashboard> {
                       );
                     }
 
-                    final overview = AttendanceOverviewModel.fromFirestore(
-                      snapshot.data!,
-                    );
-                    final bool isExpired =
-                        overview.expTime != null &&
-                        overview.expTime!.toDate().isBefore(DateTime.now());
+                    final overview = AttendanceOverviewModel.fromFirestore(snapshot.data!);
+                    final bool isExpired = overview.expTime != null && overview.expTime!.toDate().isBefore(DateTime.now());
+
+                    print(overview.sheetUrl);
+
                     final bool isSessionActive =
-                        overview.isOpen &&
-                        overview.subjectCode == subject.subjectCode &&
-                        !isExpired;
-                    final bool isMarked =
-                        _markedSubjectCode == subject.subjectCode;
+                        overview.isOpen && !isExpired;
+
+                    final bool isMarked = _markedSubjectCode == subject.subjectCode;
 
                     return Container(
                       padding: const EdgeInsets.all(20),
@@ -874,7 +883,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
                                                   return;
                                                 }
 
-                                                if (_codeController.text.trim() != overview.attendanceCode) {
+                                                if (_codeController.text
+                                                        .trim() !=
+                                                    overview.attendanceCode) {
                                                   ScaffoldMessenger.of(
                                                     context,
                                                   ).showSnackBar(
@@ -893,36 +904,24 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
                                                 final success =
                                                     await markAttendance(
-                                                      rollNumber: studentData!
-                                                          .rollNumber,
-                                                      subjectCode:
-                                                          subject.subjectCode,
-                                                      sectionId:
-                                                          studentData!.section,
-                                                      sessionId:
-                                                          overview.subjectCode,
-                                                      submittedCode:
-                                                          _codeController.text
-                                                              .trim(),
+                                                      rollNumber: studentData!.rollNumber,
+                                                      subjectCode: subject.subjectCode,
+                                                      sheetURl: overview.sheetUrl,
+                                                      sessionId: docId,
+                                                      submittedCode: _codeController.text.trim(),
                                                     );
 
-                                                if (success) {
-                                                  ScaffoldMessenger.of(
+
+                                                if (success) {ScaffoldMessenger.of(
                                                     context,
                                                   ).showSnackBar(
-                                                    const SnackBar(
-                                                      content: Text(
-                                                        'Attendance marked successfully!',
-                                                      ),
-                                                      backgroundColor:
-                                                          successColor,
-                                                      behavior: SnackBarBehavior
-                                                          .floating,
+                                                    const SnackBar(content: Text('Attendance marked successfully!'),
+                                                      backgroundColor: successColor,
+                                                      behavior: SnackBarBehavior.floating,
                                                     ),
                                                   );
                                                   setState(() {
-                                                    _markedSubjectCode =
-                                                        subject.subjectCode;
+                                                    _markedSubjectCode = subject.subjectCode;
                                                     _codeController.clear();
                                                   });
                                                 } else {
@@ -933,10 +932,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
                                                       content: Text(
                                                         'Failed to mark attendance. Please try again.',
                                                       ),
-                                                      backgroundColor:
-                                                          errorColor,
-                                                      behavior: SnackBarBehavior
-                                                          .floating,
+                                                      backgroundColor: errorColor,
+                                                      behavior: SnackBarBehavior.floating,
                                                     ),
                                                   );
                                                 }

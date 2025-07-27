@@ -177,7 +177,7 @@ class _StudentProfileState extends State<StudentProfile> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         surfaceTintColor: Colors.transparent,
-        backgroundColor: AppColors.error,
+        backgroundColor: AppColors.surface,
         centerTitle: true,
         elevation: 0,
         title: TextWidget(
@@ -273,7 +273,7 @@ class _StudentProfileState extends State<StudentProfile> {
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
+                                      color: AppColors.background,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Row(
@@ -303,7 +303,7 @@ class _StudentProfileState extends State<StudentProfile> {
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
+                                      color: AppColors.background,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Row(
@@ -334,7 +334,7 @@ class _StudentProfileState extends State<StudentProfile> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade100,
+                                color: AppColors.background,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
@@ -397,7 +397,7 @@ class _StudentProfileState extends State<StudentProfile> {
 
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.error,
+                  color: AppColors.card,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(

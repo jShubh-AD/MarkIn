@@ -33,4 +33,19 @@ class AuthService{
     await fireBaseAuth.signOut();
   }
 
+  Future<UserCredential?> signUp({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final UserCredential userCredential = await fireBaseAuth
+          .createUserWithEmailAndPassword(email: email, password: password);
+
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      throw e; // Let UI handle the error
+    } catch (e) {
+      throw Exception('Unexpected error: ${e.toString()}');
+    }
+  }
 }

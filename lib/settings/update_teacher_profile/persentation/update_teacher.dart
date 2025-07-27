@@ -3,6 +3,7 @@ import 'package:attendence/core/widgets/lable_text.dart';
 import 'package:attendence/core/widgets/text_widget.dart';
 import 'package:attendence/user/teacher_register/data/teacher_register_datasource.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Add this import for clipboard
 
 class UpdateTeacher extends StatefulWidget {
   final String subjectName;
@@ -38,26 +39,43 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
   final TextEditingController _sheetUrl = TextEditingController();
   final TextEditingController _course = TextEditingController();
   final TextEditingController _semester = TextEditingController();
+  final TextEditingController _sheetScript = TextEditingController();
 
   bool _isLoading = false;
-  String? _errorMessage;
 
-  // Theme colors - matching dashboard theme
-  static const Color primaryColor = Color(0xFF1976D2);
-  static const Color primaryLightColor = Color(0xFF42A5F5);
-  static const Color accentColor = Color(0xFF2196F3);
-  static const Color surfaceColor = Colors.white;
-  static const Color backgroundColor = Color(0xFFF5F7FA);
-  static const Color cardColor = Colors.white;
-  static const Color errorColor = Color(0xFFE53E3E);
-  static const Color successColor = Color(0xFF38A169);
+  // Properly formatted script text
+  final String _scriptText = '''function doPost(e) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const data = sheet.getDataRange().getValues();
+  const json = JSON.parse(e.postData.contents);
+  const rollNumber = json.rollNumber;
+  const date = json.date;
+  const value = json.value;
+  
+  let dateColIndex = data[0].indexOf(date);
+  if (dateColIndex === -1) {
+    dateColIndex = data[0].length;
+    sheet.getRange(1, dateColIndex + 1).setValue(date);
+  }
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1].toString().trim() === rollNumber.toString().trim()) {
+      sheet.getRange(i + 1, dateColIndex + 1).setValue(value);
+      return ContentService.createTextOutput('Attendance marked for roll number ' + rollNumber);
+    }
+  }
+  
+  return ContentService.createTextOutput('Roll number not found: ' + rollNumber);
+}''';
 
   @override
   void initState() {
     super.initState();
     _sheetUrl.text = widget.sheetUrl ?? '';
     _semester.text = widget.semester;
+    _sheetUrl.text = widget.sheetUrl ?? '';
     _course.text = widget.course;
+    _sheetScript.text = _scriptText;
   }
 
   @override
@@ -65,16 +83,44 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
     _sheetUrl.dispose();
     _semester.dispose();
     _course.dispose();
+    _sheetScript.dispose();
     super.dispose();
+  }
+
+  // Function to copy script to clipboard
+  void _copyScriptToClipboard() async {
+    await Clipboard.setData(ClipboardData(text: _scriptText));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              TextWidget(
+                text: 'Script copied to clipboard!',
+                color: Colors.white,
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         surfaceTintColor: Colors.transparent,
-        backgroundColor: surfaceColor,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         title: TextWidget(
           text: 'Update Subject',
@@ -87,21 +133,18 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
           child: IconButton(
             iconSize: 24,
             style: IconButton.styleFrom(
-              backgroundColor: primaryColor.withOpacity(0.1),
+              backgroundColor: AppColors.primary.withOpacity(0.1),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back_ios_rounded, color: primaryColor),
+            icon: const Icon(Icons.arrow_back_ios_rounded, color: AppColors.primary),
           ),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: Colors.grey.shade200,
-          ),
+          child: Container(height: 1, color: Colors.grey.shade200),
         ),
       ),
       body: SingleChildScrollView(
@@ -119,12 +162,12 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: accentColor.withOpacity(0.1),
+                        color:  AppColors.accent.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
                         Icons.edit_outlined,
-                        color: accentColor,
+                        color:  AppColors.accent,
                         size: 20,
                       ),
                     ),
@@ -142,7 +185,7 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
                 // Subject details card
                 Container(
                   decoration: BoxDecoration(
-                    color: cardColor,
+                    color: AppColors.card,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
@@ -164,7 +207,7 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 gradient: LinearGradient(
-                                  colors: [primaryColor, primaryLightColor],
+                                  colors: [ AppColors.primary, AppColors.primaryLight],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),
@@ -176,7 +219,7 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
                                   text: widget.subjectName.isNotEmpty
                                       ? widget.subjectName[0].toUpperCase()
                                       : "S",
-                                  color: primaryColor,
+                                  color: AppColors.primary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),
@@ -195,15 +238,18 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
                                   ),
                                   const SizedBox(height: 4),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 4,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: primaryColor.withOpacity(0.1),
+                                      color:AppColors.primary.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                     child: TextWidget(
                                       text: 'Code: ${widget.subjectCode}',
                                       fontSize: 12,
-                                      color: primaryColor,
+                                      color: AppColors.primary,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -216,7 +262,7 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: backgroundColor,
+                            color: AppColors.background,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: Colors.grey.shade200,
@@ -254,7 +300,8 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
                                 child: Padding(
                                   padding: const EdgeInsets.only(left: 16),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                    CrossAxisAlignment.start,
                                     children: [
                                       TextWidget(
                                         text: 'Course',
@@ -289,12 +336,12 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: successColor.withOpacity(0.1),
+                        color: AppColors.success.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
                         Icons.settings_outlined,
-                        color: successColor,
+                        color: AppColors.success,
                         size: 20,
                       ),
                     ),
@@ -312,7 +359,7 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
                 // Form card
                 Container(
                   decoration: BoxDecoration(
-                    color: cardColor,
+                    color: AppColors.card,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
@@ -325,14 +372,21 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Expanded(child: _buildReadOnlyField('Course', _course)),
+                            Expanded(
+                              child: _buildReadOnlyField('Course', _course),
+                            ),
                             const SizedBox(width: 16),
-                            Expanded(child: _buildReadOnlyField('Semester', _semester)),
+                            Expanded(
+                              child: _buildReadOnlyField('Semester', _semester),
+                            ),
                           ],
                         ),
+                        const SizedBox(height: 24),
+                        _buildScriptFieldWithCopy('Sheet Script', _sheetScript),
                         const SizedBox(height: 24),
                         _buildTextField('Attendance Sheet URL', _sheetUrl),
                       ],
@@ -348,10 +402,10 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
                   height: 56,
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
+                      backgroundColor:AppColors.primary,
                       foregroundColor: Colors.white,
                       elevation: 3,
-                      shadowColor: primaryColor.withOpacity(0.3),
+                      shadowColor: AppColors.primary.withOpacity(0.3),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -415,15 +469,12 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
           controller: controller,
           decoration: InputDecoration(
             hintText: 'Enter $label',
-            hintStyle: TextStyle(
-              color: Colors.grey.shade500,
-              fontSize: 14,
-            ),
+            hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
             filled: true,
-            fillColor: backgroundColor,
+            fillColor:AppColors.background,
             prefixIcon: Icon(
               Icons.link_outlined,
-              color: primaryColor,
+              color:AppColors.primary,
               size: 20,
             ),
             border: OutlineInputBorder(
@@ -436,14 +487,11 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: primaryColor,
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: errorColor),
+              borderSide: const BorderSide(color: AppColors.error),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
@@ -494,6 +542,70 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
     );
   }
 
+  // New widget for script field with copy button
+  Widget _buildScriptFieldWithCopy(String label, TextEditingController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            TextWidget(
+              text: label,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
+            ElevatedButton.icon(
+              onPressed: _copyScriptToClipboard,
+              icon: const Icon(Icons.copy, size: 16),
+              label: const TextWidget(
+                text: 'Copy',
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 2,
+                shadowColor: AppColors.primary.withOpacity(0.3),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                minimumSize: const Size(0, 32),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          height: 200,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: SingleChildScrollView(
+            child: SelectableText(
+              controller.text,
+              style: TextStyle(
+                color: Colors.black87,
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                fontFamily: 'monospace',
+                height: 1.4,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   void _showUpdateConfirmation() {
     showDialog(
       context: context,
@@ -503,7 +615,7 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
 
         return StatefulBuilder(
           builder: (context, setStateDialog) => AlertDialog(
-            backgroundColor: cardColor,
+            backgroundColor: AppColors.card,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
@@ -512,12 +624,12 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: primaryColor.withOpacity(0.1),
+                    color: AppColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.update_outlined,
-                    color: primaryColor,
+                    color: AppColors.primary,
                     size: 20,
                   ),
                 ),
@@ -531,17 +643,17 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
               ],
             ),
             content: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: backgroundColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TextWidget(
-                text: 'Are you sure you want to update the Attendance Sheet URL for this subject?',
-                fontSize: 14,
-                color: Colors.black87,
-                textAlign: TextAlign.center,
-              ),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: LabeledText(
+                  label: 'Please make sure te followings: ',
+                  value: '\n\n1. The script is added in your Google sheet.'
+                      '\n\n2. Sheet is deployed with access selected as \'Anyone\'.'
+                      '\n\nOnly then paste the new url here.',
+                )
             ),
             actions: [
               SizedBox(
@@ -575,10 +687,10 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
                     Expanded(
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
+                          backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           elevation: 2,
-                          shadowColor: primaryColor.withOpacity(0.3),
+                          shadowColor: AppColors.primary.withOpacity(0.3),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -606,13 +718,16 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: const TextWidget(
-                                    text: 'Sheet URL updated successfully!',
+                                    text:
+                                    'Sheet URL updated successfully!',
                                     color: Colors.white,
                                   ),
-                                  backgroundColor: successColor,
+                                  backgroundColor: AppColors.success,
                                   behavior: SnackBarBehavior.floating,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(
+                                      12,
+                                    ),
                                   ),
                                 ),
                               );
@@ -626,10 +741,12 @@ class _UpdateTeacherState extends State<UpdateTeacher> {
                                     text: 'Error: ${e.toString()}',
                                     color: Colors.white,
                                   ),
-                                  backgroundColor: errorColor,
+                                  backgroundColor: AppColors.error,
                                   behavior: SnackBarBehavior.floating,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(
+                                      12,
+                                    ),
                                   ),
                                 ),
                               );

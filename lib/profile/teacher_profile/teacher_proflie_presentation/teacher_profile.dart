@@ -1,9 +1,9 @@
+import 'package:attendence/core/app_colors.dart';
 import 'package:attendence/core/widgets/text_widget.dart';
 import 'package:attendence/settings/update_teacher_profile/persentation/update_teacher.dart';
 import 'package:attendence/user/teacher_register/data/teacher_register_model.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../../core/auth/aurth_service.dart';
 import '../../../core/widgets/lable_text.dart';
 import '../../../settings/change_password/presentation/change_password.dart';
@@ -184,7 +184,7 @@ class _TeacherProfileState extends State<TeacherProfile> {
       backgroundColor: backgroundColor,
       appBar: AppBar(
         surfaceTintColor: Colors.transparent,
-        backgroundColor: surfaceColor,
+        backgroundColor: AppColors.surface,
         centerTitle: true,
         elevation: 0,
         title: TextWidget(

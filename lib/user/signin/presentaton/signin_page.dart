@@ -1,8 +1,11 @@
 import 'package:attendence/core/auth/aurth_service.dart';
+import 'package:attendence/core/widgets/lable_text.dart';
 import 'package:attendence/core/widgets/text_widget.dart';
+import 'package:attendence/user/signup/presentation/sign_up.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../student_homepage/presentation/student_dashboard.dart';
 import '../../../teacher_homepage/presentation/teacher_dashboard.dart';
@@ -29,12 +32,9 @@ class _SignInPageState extends State<SignInPage> {
   // Theme colors
   static const Color primaryColor = Color(0xFF1976D2);
   static const Color primaryLightColor = Color(0xFF42A5F5);
-  static const Color accentColor = Color(0xFF2196F3);
-  static const Color surfaceColor = Colors.white;
   static const Color backgroundColor = Color(0xFFF5F7FA);
   static const Color cardColor = Colors.white;
   static const Color errorColor = Color(0xFFE53E3E);
-  static const Color successColor = Color(0xFF38A169);
 
   @override
   void dispose() {
@@ -119,8 +119,6 @@ class _SignInPageState extends State<SignInPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 40),
-
                   // Header Section
                   Container(
                     width: double.infinity,
@@ -136,7 +134,7 @@ class _SignInPageState extends State<SignInPage> {
                       ],
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(32),
+                      padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
                           Container(
@@ -177,7 +175,7 @@ class _SignInPageState extends State<SignInPage> {
                     ),
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 20),
 
                   // Role Selection
                   Container(
@@ -319,7 +317,24 @@ class _SignInPageState extends State<SignInPage> {
                     v == null || v.isEmpty ? 'Please enter Password' : null,
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 10),
+
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pushReplacement(context, (MaterialPageRoute(builder: (context)=> SignUp())));
+                      HapticFeedback.lightImpact();
+                    },
+                    child: LabeledText(
+                      label: "Don't have an account?",
+                      value: "Create one.",
+                      labelFontSize: 14,
+                      labelWeight: FontWeight.normal,
+                      labelColor: Colors.black87,
+                      valueColor: Colors.blue,
+                      valueFontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
 
                   // Login Button
                   SizedBox(
@@ -351,7 +366,6 @@ class _SignInPageState extends State<SignInPage> {
                             email: email,
                             password: password,
                           );
-
                           // Role validation
                           if (_isStudent && !email.toLowerCase().contains('.bcr')) {
                             if (mounted) {

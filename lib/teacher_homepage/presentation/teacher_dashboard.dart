@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:attendence/core/app_colors.dart';
 import 'package:attendence/core/auth/aurth_service.dart';
 import 'package:attendence/teacher_homepage/data/teacher_dashboard_datasource.dart';
 import 'package:attendence/user/signin/presentaton/signin_page.dart';
@@ -11,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/widgets/text_widget.dart';
 import '../../profile/teacher_profile/teacher_proflie_presentation/teacher_profile.dart';
+import '../../student_homepage/data/students_data/attendance_overview_model.dart';
 
 class TeacherDashboard extends StatefulWidget {
   const TeacherDashboard({super.key});
@@ -298,7 +300,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (c) => TeacherProfile(teacherData: _teacherData!,)),
+                MaterialPageRoute(builder: (c) =>  TeacherProfile(teacherData: _teacherData!,)),
               );
             },
             icon: const Icon(Icons.person_rounded, color: primaryColor),
@@ -570,8 +572,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                                           onChanged: (val) async {
                                             try {
                                               await fbStore.doc(subjectId.trim()).set(
-                                                  {'isOpen': val},
-                                                  SetOptions(merge: true)
+                                                  {'isOpen': val}, SetOptions(merge: true)
                                               );
                                             } catch (e) {
                                               if (mounted) {
@@ -593,6 +594,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                                     ),
                                     const SizedBox(height: 20),
                                     CodeCountdownButton(
+                                      sheetUrl: assignedSubject.sheetUrl!,
                                       isOpen: isOpen,
                                       subjectId: subjectId,
                                       section: assignedSubject.sectionId.toLowerCase(),
@@ -621,10 +623,12 @@ class CodeCountdownButton extends StatefulWidget {
   final bool isOpen;
   final String subjectId;
   final String section;
+  final String sheetUrl;
 
   const CodeCountdownButton({
     super.key,
     required this.isOpen,
+    required this.sheetUrl,
     required this.subjectId,
     required this.section,
   });
@@ -634,20 +638,12 @@ class CodeCountdownButton extends StatefulWidget {
 }
 
 class _CodeCountdownButtonState extends State<CodeCountdownButton> {
-  int? _code;
+  String? _code;
   String _buttonText = "Generate Code";
   bool _isDisabled = false;
   Timer? _timer;
 
-  // Theme colors
-  static const Color primaryColor = Color(0xFF1976D2);
-  static const Color primaryLightColor = Color(0xFF42A5F5);
-  static const Color accentColor = Color(0xFF2196F3);
-  static const Color surfaceColor = Colors.white;
-  static const Color backgroundColor = Color(0xFFF5F7FA);
-  static const Color cardColor = Colors.white;
-  static const Color errorColor = Color(0xFFE53E3E);
-  static const Color successColor = Color(0xFF38A169);
+
 
   @override
   void initState() {
@@ -664,29 +660,27 @@ class _CodeCountdownButtonState extends State<CodeCountdownButton> {
       if (!mounted) return; // Prevent setState on disposed widget
 
       if (snapshot.exists && snapshot.data() != null) {
-        final data = snapshot.data()!;
-        final existingCode = data['code'] as int?;
-        final expTimeTimestamp = data['expTime'] as Timestamp?;
-        final currentIsOpen = data['isOpen'] ?? false;
+        final attendance = AttendanceOverviewModel.fromFirestore(snapshot);
+
 
         // If attendance is manually closed, reset UI immediately
-        if (!currentIsOpen && _isDisabled) {
+        if(!attendance.isOpen && _isDisabled){
           setState(() {
             _isDisabled = false;
-            _buttonText = 'Generate Code';
+            _buttonText = 'Generate Code' ;
             _code = null;
           });
           _timer?.cancel();
-          return; // Exit as state is reset
+          return;
         }
 
-        if (existingCode != null && expTimeTimestamp != null && currentIsOpen) {
-          final expTime = expTimeTimestamp.toDate();
+        if (attendance.attendanceCode.isNotEmpty && attendance.expTime != null && attendance.isOpen) {
+          final expTime = attendance.expTime!.toDate();
           final remainingSeconds = expTime.difference(DateTime.now()).inSeconds;
 
           if (remainingSeconds > 0) {
             setState(() {
-              _code = existingCode;
+              _code = attendance.attendanceCode;
               _isDisabled = true;
               _buttonText = "Wait (${remainingSeconds}s)";
             });
@@ -706,7 +700,7 @@ class _CodeCountdownButtonState extends State<CodeCountdownButton> {
               'expTime': FieldValue.delete(),
             }).catchError((e) => print("Error cleaning up expired code: $e"));
           }
-        } else if (!currentIsOpen && _code != null) {
+        } else if (!attendance.isOpen && _code != null) {
           // If attendance was open but is now closed from somewhere else
           setState(() {
             _code = null;
@@ -754,7 +748,7 @@ class _CodeCountdownButtonState extends State<CodeCountdownButton> {
   void _startCountdown() async {
     setState(() {
       _isDisabled = true;
-      _code = 100000 + Random().nextInt(900000); // generate 6-digit code
+      _code = (100000 + Random().nextInt(900000)).toString(); // generate 6-digit code
       _buttonText = "Wait (30s)";
     });
 
@@ -762,11 +756,11 @@ class _CodeCountdownButtonState extends State<CodeCountdownButton> {
     final docRef = fbStore.doc(widget.subjectId.trim());
 
     try {
-      await docRef.set({ // Use set with merge true to create if not exists
+      await docRef.set({
         'code': _code,
+        'sheetUrl': widget.sheetUrl,
         'isOpen': true,
-        'expTime':
-        Timestamp.fromDate(DateTime.now().add(const Duration(seconds: 30)))
+        'expTime': Timestamp.fromDate(DateTime.now().add(const Duration(seconds: 30)))
       }, SetOptions(merge: true));
 
       _startLocalCountdown(30);
@@ -794,7 +788,7 @@ class _CodeCountdownButtonState extends State<CodeCountdownButton> {
               text: "Error generating code: ${e.toString()}",
               color: Colors.white,
             ),
-            backgroundColor: errorColor,
+            backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -823,21 +817,21 @@ class _CodeCountdownButtonState extends State<CodeCountdownButton> {
             padding: const EdgeInsets.all(16),
             margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(
-              color: successColor.withOpacity(0.1),
+              color: AppColors.success.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: successColor.withOpacity(0.3)),
+              border: Border.all(color: AppColors.success.withOpacity(0.3)),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: successColor.withOpacity(0.2),
+                    color: AppColors.success.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Icon(
                     Icons.key,
-                    color: successColor,
+                    color: AppColors.success,
                     size: 16,
                   ),
                 ),
@@ -848,14 +842,14 @@ class _CodeCountdownButtonState extends State<CodeCountdownButton> {
                     children: [
                       const TextWidget(
                         text: 'Generated Code',
-                        color: successColor,
+                        color: AppColors.success,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
                       const SizedBox(height: 2),
                       TextWidget(
                         text: '$_code',
-                        color: successColor,
+                        color: AppColors.success,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
@@ -871,10 +865,10 @@ class _CodeCountdownButtonState extends State<CodeCountdownButton> {
           child: ElevatedButton(
             onPressed: (_isDisabled || !widget.isOpen) ? null : _startCountdown,
             style: ElevatedButton.styleFrom(
-              backgroundColor: widget.isOpen && !_isDisabled ? primaryColor : Colors.grey.shade400,
+              backgroundColor: widget.isOpen && !_isDisabled ? AppColors.primary : Colors.grey.shade400,
               foregroundColor: Colors.white,
               elevation: widget.isOpen && !_isDisabled ? 2 : 0,
-              shadowColor: primaryColor.withOpacity(0.3),
+              shadowColor: AppColors.primary.withOpacity(0.3),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
